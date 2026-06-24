@@ -562,6 +562,20 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(appSource, /renderResultsPage/);
   assert.match(appSource, /matchResultText/);
   assert.match(appSource, /id="results-page"/);
+  assert.match(appSource, /activeUserTab = "home"/);
+  assert.match(appSource, /activeAdminTab = "matchday"/);
+  assert.match(appSource, /id: "home"/);
+  assert.match(appSource, /data-user-tab="matches"/);
+  assert.match(appSource, /id: "predictions"/);
+  assert.match(appSource, /id: "standings"/);
+  assert.match(appSource, /data-user-tab="rules"/);
+  assert.match(appSource, /id: "matchday"/);
+  assert.match(appSource, /id: "tools"/);
+  assert.match(appSource, /renderAdminTools/);
+  assert.match(appSource, /querySelectorAll\("\[data-user-tab\]"\)/);
+  assert.match(appSource, /querySelectorAll\("\[data-admin-tab\]"\)/);
+  assert.match(appSource, /predictions-details/);
+  assert.match(appSource, /rules-group/);
   assert.doesNotMatch(appSource, /<select name="method">/);
   assert.match(appSource, /function safeJsonParse/);
   assert.match(appSource, /await response\.text\(\)/);
@@ -575,6 +589,9 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(css, /card-table/);
   assert.match(css, /--tap:\s*44px/);
   assert.match(css, /results-grid/);
+  assert.match(css, /user-bottom-nav/);
+  assert.match(css, /tab-button\.active/);
+  assert.match(css, /compact-details/);
 });
 
 test("Env loader parses .env values without overriding existing env", () => {
@@ -804,5 +821,3 @@ test("Supabase migration script does not print or embed secrets", () => {
   assert.match(script, /auditLogs/);
   assert.match(script, /payouts/);
 });
-
-

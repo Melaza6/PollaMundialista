@@ -381,7 +381,9 @@ function renderAppError(error) {
   const payload = error.payload || {};
   const title = lang === "es" ? "No pudimos cargar la polla" : "We could not load the pool";
   const retry = lang === "es" ? "Intentar de nuevo" : "Try again";
-  const detail = payload.message || error.message || (lang === "es" ? "Error del servidor." : "Server error.");
+  const detail = lang === "es"
+    ? "No pudimos cargar la informacion de la app. Intenta actualizar la pagina o contacta al administrador."
+    : "We could not load the app data. Try refreshing the page or contact the admin.";
   app.innerHTML = `
     <header class="shell-header">
       <div>
@@ -593,6 +595,7 @@ function renderAdminTools() {
   return `
     <section class="panel"><h2>${t("exchangeRate")}</h2><div class="provider-box">${renderExchangeRateSummary()}<button class="ghost small" id="syncExchangeRateBtn">${t("syncExchangeRate")}</button></div></section>
     <section class="panel"><h2>${t("apiVerification")}</h2>${renderApiVerification()}</section>
+    <section class="panel"><h2>${t("storageMode")}</h2><div class="provider-box"><strong>${escapeHtml(state.storage?.label || state.storage?.driver || "json")}</strong>${state.storage?.warning ? `<p class="warning">${t("jsonStorageWarning")}</p>` : ""}</div></section>
     <section class="panel"><h2>${t("users")}</h2>${renderAdminUsers()}</section>
     <section class="panel admin-wide"><details class="compact-details"><summary>${t("exports")}</summary>${renderExports()}</details></section>
     <section class="panel admin-wide"><details class="compact-details"><summary>${t("auditLog")}</summary>${renderAuditLog()}</details></section>
@@ -674,7 +677,12 @@ function renderMatchCard(match) {
       <p>${escapeHtml(match.venue)}</p>
       <p>${info.locked ? t("locked") : t("open")} · ${fmtDate(info.lockAt)}</p>
       ${userPrediction ? `<strong>${t("myPredictions")}: ${userPrediction.homeScore}-${userPrediction.awayScore}</strong>` : ""}
+      ${userPrediction ? `<p>${t("payment")}: ${paymentStatus(paymentForPrediction(userPrediction.id))}</p>` : ""}
       ${renderPredictionForm(match, userPrediction, info.locked)}
+      <details class="compact-details predictions-details">
+        <summary>${t("viewPredictions")}</summary>
+        ${renderPredictionTable(match)}
+      </details>
     </article>
   `;
 }
@@ -764,43 +772,28 @@ function renderPrizes() {
 }
 
 function renderRulesPage() {
-  const lines =
+  const groups =
     lang === "en"
       ? [
-          "Polla Mundialista 2026 is a family exact-score pool for one match at a time.",
-          "Sign up and log in with name and phone only.",
-          "Payments are manual: 2,000 COP or 1 USD per entry.",
-          "Choose COP or USD when submitting the prediction/payment choice.",
-          "Users can edit only their own prediction until 15 minutes before kickoff.",
-          "Admin emergency corrections require a reason and close 5 minutes before kickoff.",
-          "Everyone can see submitted predictions; only admins can manage payments and corrections.",
-          "Exact score earns 5 points. Correct result earns 2 points. Otherwise 0 points.",
-          "Every verified entry contributes exactly 2,000 COP to the base pot.",
-          "USD excess over 2,000 COP goes to the separate World Cup bonus pot.",
-          "USD exchange value is only an estimate until admin verifies and locks the payment.",
-          "Official API results are the settlement source. If sync is delayed, results show pending sync.",
-          "Prize payouts are manual and confirmed by the admin.",
-          "For help, contact the family admin.",
+          ["Entry", ["Family exact-score pool for one match at a time.", "Sign up and log in with name and phone only.", "Payments are manual: 2,000 COP or 1 USD per entry."]],
+          ["Predictions", ["Users can edit only their own prediction until 15 minutes before kickoff.", "Everyone can see submitted predictions.", "Exact score earns 5 points. Correct result earns 2 points. Otherwise 0 points."]],
+          ["Payments and Prizes", ["Every verified entry contributes exactly 2,000 COP to the base pot.", "USD excess over 2,000 COP goes to the separate World Cup bonus pot.", "Prize payouts are manual and confirmed by the admin."]],
+          ["Results", ["Official API results are the settlement source.", "If sync is delayed, results show pending sync.", "For help, contact the family admin."]],
         ]
       : [
-          "Polla Mundialista 2026 es una polla familiar de marcador exacto, un partido a la vez.",
-          "Registrate e inicia sesion solo con nombre y telefono.",
-          "Los pagos son manuales: 2,000 COP o 1 USD por entrada.",
-          "Elige COP o USD al enviar tu prediccion y forma de pago.",
-          "Puedes editar solo tu prediccion hasta 15 minutos antes del inicio.",
-          "La correccion de emergencia del admin requiere motivo y cierra 5 minutos antes del inicio.",
-          "Todos pueden ver las predicciones enviadas; solo admin maneja pagos y correcciones.",
-          "Marcador exacto da 5 puntos. Resultado correcto da 2 puntos. Si no, 0 puntos.",
-          "Cada entrada verificada aporta exactamente 2,000 COP al pozo base.",
-          "El exceso de USD sobre 2,000 COP va al bono separado del Mundial.",
-          "La tasa USD/COP es estimada hasta que admin verifica y bloquea el pago.",
-          "Los resultados oficiales de la API son la fuente para liquidar. Si se demora, queda pendiente.",
-          "Los pagos de premios son manuales y confirmados por el administrador.",
-          "Si necesitas ayuda, contacta al administrador familiar.",
+          ["Participacion", ["Polla familiar de marcador exacto, un partido a la vez.", "Registrate e inicia sesion solo con nombre y telefono.", "Los pagos son manuales: 2,000 COP o 1 USD por entrada."]],
+          ["Predicciones", ["Puedes editar solo tu prediccion hasta 15 minutos antes del inicio.", "Todos pueden ver las predicciones enviadas.", "Marcador exacto da 5 puntos. Resultado correcto da 2 puntos. Si no, 0 puntos."]],
+          ["Pagos y premios", ["Cada entrada verificada aporta exactamente 2,000 COP al pozo base.", "El exceso de USD sobre 2,000 COP va al bono separado del Mundial.", "Los pagos de premios son manuales y confirmados por el administrador."]],
+          ["Resultados", ["Los resultados oficiales de la API son la fuente para liquidar.", "Si se demora la sincronizacion, queda pendiente.", "Si necesitas ayuda, contacta al administrador familiar."]],
         ];
-  return `<ul class="rules-list">${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`;
+  return groups
+    .map(
+      ([title, lines], index) => `<details class="compact-details rules-group"${index === 0 ? " open" : ""}><summary>${escapeHtml(title)}</summary><ul class="rules-list">${lines
+        .map((line) => `<li>${escapeHtml(line)}</li>`)
+        .join("")}</ul></details>`,
+    )
+    .join("");
 }
-
 function renderExchangeRateSummary() {
   const rate = state.exchangeRate;
   if (!rate?.rate) {
@@ -820,82 +813,6 @@ function renderExchangeRateSummary() {
   `;
 }
 
-function renderAdmin() {
-  return `
-    <section class="admin-layout">
-      <div class="panel admin-wide">
-        <h2>${t("matchDay")}</h2>
-        ${renderMatchDay()}
-      </div>
-      <div class="panel">
-        <h2>${t("admin")} · ${t("payment")}</h2>
-        ${renderAdminPayments()}
-      </div>
-      <div class="panel">
-        <h2>${t("admin")} · ${t("users")}</h2>
-        ${renderAdminUsers()}
-      </div>
-      <div class="panel admin-wide">
-        <h2>${t("allPredictions")}</h2>
-        ${renderAdminPredictions()}
-      </div>
-      <div class="panel">
-        <h2>${t("exchangeRate")}</h2>
-        <div class="provider-box">
-          ${renderExchangeRateSummary()}
-          <button class="ghost small" id="syncExchangeRateBtn">${t("syncExchangeRate")}</button>
-        </div>
-      </div>
-      <div class="panel">
-        <h2>${t("results")}</h2>
-        <div class="provider-box">
-          <strong>${t("apiProvider")}: ${escapeHtml(state.settings.footballApiProvider || state.settings.resultsProvider)}</strong>
-          <p>${t("syncStatus")}: ${escapeHtml(state.sportsSync?.status || "PENDING")} · ${escapeHtml(state.sportsSync?.message || t("pendingSync"))}</p>
-          <p>${t("source")}: ${escapeHtml(state.sportsSync?.provider || "not-configured")}</p>
-          <p>${t("lastSync")}: ${state.sportsSync?.lastSyncedAt ? fmtDate(state.sportsSync.lastSyncedAt) : "—"}</p>
-          <p>${t("results")}: ${state.sportsSync?.resultsChecked || 0} / ${state.sportsSync?.resultsPulled || 0}</p>
-          <button class="ghost small" id="syncRealMatchesBtn">${t("syncRealMatches")}</button>
-          <button class="ghost small" id="syncRecentResultsBtn">${t("syncResult")}</button>
-        </div>
-        ${renderApiVerification()}
-      </div>
-      <div class="panel admin-wide" id="results-page">
-        <h2>${t("allResults")}</h2>
-        ${renderResultsPage()}
-      </div>
-      <div class="panel">
-        <h2>${t("whatsapp")}</h2>
-        <div class="button-row">
-          <button class="ghost" data-message-type="invite">${t("inviteMessage")}</button>
-          <button class="ghost" data-message-type="winner">${t("winnerMessage")}</button>
-          <button class="ghost" data-message-type="payment_reminder">${t("payment")}</button>
-          <button class="ghost" data-message-type="prediction_reminder">${t("predictions")}</button>
-          <button class="ghost" data-message-type="lock_warning">30 min</button>
-          <button class="ghost" data-message-type="standings">${t("standings")}</button>
-          <button class="ghost" data-message-type="payout_ready">${t("payouts")}</button>
-        </div>
-        <textarea id="whatsappText" readonly>${escapeHtml(selectedMessage)}</textarea>
-        <div class="button-row">
-          <button id="copyWhatsappBtn" class="primary">${t("copyWhatsapp")}</button>
-          <a id="whatsappLink" class="gold link-button" href="#" target="_blank" rel="noreferrer">${t("openWhatsapp")}</a>
-        </div>
-      </div>
-      <div class="panel admin-wide">
-        <h2>${t("payouts")}</h2>
-        ${renderPayouts()}
-      </div>
-      <div class="panel admin-wide">
-        <h2>${t("exports")}</h2>
-        ${renderExports()}
-      </div>
-      <div class="panel admin-wide">
-        <h2>${t("auditLog")}</h2>
-        ${renderAuditLog()}
-      </div>
-    </section>
-  `;
-}
-
 function renderMatchDay() {
   const summary = state.matchDay || {};
   const missing = summary.missingPredictions || [];
@@ -906,9 +823,14 @@ function renderMatchDay() {
       ${statCard(t("completedFixtures"), summary.lastCompleted?.length || 0)}
       ${statCard(t("unpaidUsers"), summary.unpaidUsers?.length || 0)}
       ${statCard(t("syncStatus"), escapeHtml(summary.sportsSync?.status || "PENDING"))}
-      ${statCard(t("storageMode"), escapeHtml(state.storage?.label || state.storage?.driver || "json"))}
     </div>
-    ${state.storage?.warning ? `<p class="warning">${t("jsonStorageWarning")}</p>` : ""}
+    <div class="button-row matchday-actions">
+      <button class="primary small" id="syncRecentResultsBtn">${t("syncResult")}</button>
+      <button class="ghost small" id="syncRealMatchesBtn">${t("syncRealMatches")}</button>
+      <button class="ghost small" id="syncExchangeRateBtn">${t("syncExchangeRate")}</button>
+      <button class="ghost small" data-message-type="prediction_reminder">${t("missingPredictions")}</button>
+      <button class="ghost small" data-message-type="winner">${t("winnerMessage")}</button>
+    </div>
     <div class="two-column compact-stack">
       <div>
         <h3>${t("missingPredictions")}</h3>
@@ -921,6 +843,11 @@ function renderMatchDay() {
         <p>${(summary.unpaidUsers || []).map((user) => escapeHtml(user.name)).join(", ") || "-"}</p>
       </div>
     </div>
+    <details class="compact-details whatsapp-panel">
+      <summary>${t("whatsapp")}</summary>
+      <textarea id="whatsappText" readonly>${escapeHtml(selectedMessage)}</textarea>
+      <div class="button-row"><button id="copyWhatsappBtn" class="primary small">${t("copyWhatsapp")}</button><a id="whatsappLink" class="gold link-button small" href="#" target="_blank" rel="noreferrer">${t("openWhatsapp")}</a></div>
+    </details>
   `;
 }
 
@@ -1082,12 +1009,16 @@ function renderApiVerification() {
 }
 
 function renderAdminPayments() {
-  if (!state.payments.length) return `<p class="hint">—</p>`;
+  if (!state.payments.length) return `<p class="hint empty-state">${lang === "en" ? "No pending payments." : "No hay pagos pendientes."}</p>`;
+  const orderedPayments = [...state.payments].sort((a, b) => {
+    const rank = { PENDING: 0, VERIFIED: 2, REJECTED: 3 };
+    return (rank[a.verificationStatus] ?? 1) - (rank[b.verificationStatus] ?? 1);
+  });
   return `
-    <div class="table-wrap">
+    <div class="table-wrap card-table">
       <table>
         <thead><tr><th>${t("participants")}</th><th>${t("matches")}</th><th>${t("currency")}</th><th>${t("basePot")}</th><th>${t("exchangeBonus")}</th><th>${t("payment")}</th><th></th></tr></thead>
-        <tbody>${state.payments
+        <tbody>${orderedPayments
           .map((payment) => {
             const prediction = state.predictions.find((item) => item.id === payment.predictionId);
             const action = payment.verificationStatus === "VERIFIED" ? t("markPending") : t("markVerified");
@@ -1425,7 +1356,3 @@ function duplicateValues(values) {
 }
 
 loadState();
-
-
-
-

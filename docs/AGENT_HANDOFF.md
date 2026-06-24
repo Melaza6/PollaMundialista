@@ -281,3 +281,46 @@ Real secrets must not appear.
 `.env` must remain ignored.
 
 ---
+
+## 2026-06-24 UX resume completion
+
+### Summary
+- Resumed the interrupted UX simplification pass in the GitHub-ready folder `C:\Users\Owner\Documents\Polla mundial`.
+- Kept the app on the existing name + phone login model, manual payments, manual payouts, internal sports provider adapter, and Spanish/English UI.
+- Added/verified tabbed user and admin navigation so the app is easier to use on phone and desktop.
+- Kept match cards focused while predictions/results details stay collapsible or on dedicated admin pages.
+- Added compact responsive CSS for bottom mobile user navigation, sticky admin tabs, compact details, WhatsApp panel, and card-style payment tables.
+- Removed the unused duplicate `renderAdmin()` renderer to prevent future edits from targeting dead UI.
+
+### Files changed
+- `public/app.js`
+- `public/styles.css`
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+
+### Business logic affected
+- No settlement/payment rule changes in this pass.
+- Existing USD excess tests still confirm the extra USD/COP value remains separate from the 2,000 COP base pot.
+- Existing lock, provider fallback, Supabase, JSON recovery, and payout ledger tests remain green.
+
+### Verification
+- `node --check public/app.js`: passed
+- `pnpm build`: passed
+- `pnpm test`: passed, 41/41 tests
+- Local server started on `http://localhost:3101` and returned HTTP 200 for `/` and `/api/state`.
+- `/api/state` returned valid JSON with `publicBaseUrl` set to `https://polla.melazausa.com`.
+
+### Manual/browser notes
+- In-app browser setup failed with its own runtime metadata error before page control was available.
+- Local Playwright was not installed, so automated viewport screenshots were not available without adding a dependency.
+- Static responsive markers were verified in CSS and tests: mobile bottom nav, admin tabs, responsive card tables, compact details, theme/tap target markers.
+
+### Remaining risks
+- A real visual pass in Chrome/Safari at 375px, 768px, and 1280px is still recommended before launch.
+- Confirm production Supabase env vars on the host, not just local `.env`.
+- Confirm the production reverse proxy/domain points `polla.melazausa.com` to the Node service over HTTPS.
+
+### Git status
+- Uncommitted UX changes remain in the working tree.
+- No secrets were printed or added.
+- No commit was made during this pass.
