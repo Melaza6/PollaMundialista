@@ -559,6 +559,9 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(appSource, /renderExports/);
   assert.match(appSource, /renderAuditLog/);
   assert.match(appSource, /renderPayouts/);
+  assert.match(appSource, /renderResultsPage/);
+  assert.match(appSource, /matchResultText/);
+  assert.match(appSource, /id="results-page"/);
   assert.doesNotMatch(appSource, /<select name="method">/);
   assert.match(appSource, /function safeJsonParse/);
   assert.match(appSource, /await response\.text\(\)/);
@@ -571,6 +574,7 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(css, /@media \(max-width:\s*700px\)/);
   assert.match(css, /card-table/);
   assert.match(css, /--tap:\s*44px/);
+  assert.match(css, /results-grid/);
 });
 
 test("Env loader parses .env values without overriding existing env", () => {
@@ -800,4 +804,5 @@ test("Supabase migration script does not print or embed secrets", () => {
   assert.match(script, /auditLogs/);
   assert.match(script, /payouts/);
 });
+
 

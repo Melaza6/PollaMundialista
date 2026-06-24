@@ -263,6 +263,12 @@ button,
   overflow-wrap: anywhere;
 }
 
+.match-result {
+  color: var(--blue);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
 .prediction-form {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -311,9 +317,17 @@ th {
 
 .admin-match {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--line);
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.results-grid {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .inline-editor {
@@ -499,6 +513,10 @@ textarea:focus-visible {
   }
 
   .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .results-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

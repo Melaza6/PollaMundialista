@@ -555,6 +555,7 @@ function renderMatchCard(match) {
   const info = lockInfo(match);
   const userPrediction = predictionFor(match.id);
   const selected = selectedMatchId === match.id ? " selected" : "";
+  const result = matchResultText(match);
   return `
     <article class="match-card${selected}" data-select-match="${match.id}">
       <div class="match-top">
@@ -562,6 +563,7 @@ function renderMatchCard(match) {
         <span>${fmtDate(match.kickoffAt)}</span>
       </div>
       <h3>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</h3>
+      ${result ? `<p class="match-result">${escapeHtml(result)}</p>` : ""}
       ${match.stage || match.group ? `<p>${escapeHtml(match.stage || match.group)}</p>` : ""}
       <p>${escapeHtml(match.venue)}</p>
       <p>${info.locked ? t("locked") : t("open")} · ${fmtDate(info.lockAt)}</p>
@@ -569,6 +571,12 @@ function renderMatchCard(match) {
       ${renderPredictionForm(match, userPrediction, info.locked)}
     </article>
   `;
+}
+
+function matchResultText(match) {
+  if (match.result) return `${match.result.homeScore}-${match.result.awayScore}`;
+  if (match.apiResult) return `${match.apiResult.homeScore}-${match.apiResult.awayScore}`;
+  return "";
 }
 
 function renderPredictionForm(match, prediction, locked) {
@@ -744,7 +752,10 @@ function renderAdmin() {
           <button class="ghost small" id="syncRecentResultsBtn">${t("syncResult")}</button>
         </div>
         ${renderApiVerification()}
-        ${state.matches.map(renderAdminMatch).join("")}
+      </div>
+      <div class="panel admin-wide" id="results-page">
+        <h2>${t("allResults")}</h2>
+        ${renderResultsPage()}
       </div>
       <div class="panel">
         <h2>${t("whatsapp")}</h2>
@@ -1031,13 +1042,25 @@ function renderAdminUsers() {
     </div>
   `;
 }
+
+function renderResultsPage() {
+  const rows = state.matches
+    .filter((match) => match.result || match.apiResult || match.resultSync?.status !== "PENDING")
+    .sort((a, b) => new Date(b.kickoffAt) - new Date(a.kickoffAt));
+  if (!rows.length) return `<p class="hint empty-state">${t("pendingSync")}</p>`;
+  return `
+    <div class="results-grid">
+      ${rows.map(renderAdminMatch).join("")}
+    </div>
+  `;
+}
+
 function renderAdminMatch(match) {
+  const result = matchResultText(match) || escapeHtml(match.resultSync?.message || t("pendingSync"));
   return `
     <div class="admin-match">
       <strong>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</strong>
-      <span>${match.result ? `${match.result.homeScore}-${match.result.awayScore}` : escapeHtml(match.resultSync?.message || t("pendingSync"))}</span>
-      <span>${t("source")}: ${escapeHtml(match.resultSync?.source || state.sportsSync?.provider || "not-configured")}</span>
-      <span>${t("lastSync")}: ${match.resultSync?.lastSyncedAt ? fmtDate(match.resultSync.lastSyncedAt) : "—"}</span>
+      <span class="match-result">${result}</span>
       <button class="ghost small" data-sync-result="${match.id}">${t("syncResult")}</button>
     </div>
   `;
