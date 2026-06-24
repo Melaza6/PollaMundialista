@@ -5,11 +5,11 @@
   "packageManager": "pnpm@11.1.2",
   "type": "module",
   "scripts": {
-    "build": "node --check lib/rules.js && node --check lib/auth.js && node --check lib/env.js && node --check server/sportsProvider.js && node --check server/exchangeRateProvider.js && node --check server/storage/index.js && node --check server/storage/jsonStorage.js && node --check server/storage/supabaseStorage.js && node --check server/storage/migrateJsonToSupabase.js && node --check server/storage/checkSupabaseConnection.js && node --check server.js && node --check public/app.js && node test/settlement.test.js",
+    "build": "node --check lib/rules.js && node --check lib/auth.js && node --check lib/env.js && node --check lib/safeJson.js && node --check server/sportsProvider.js && node --check server/exchangeRateProvider.js && node --check server/storage/index.js && node --check server/storage/jsonStorage.js && node --check server/storage/supabaseStorage.js && node --check server/storage/migrateJsonToSupabase.js && node --check server/storage/checkSupabaseConnection.js && node --check server.js && node --check public/app.js && node test/settlement.test.js",
     "db:check": "node server/storage/checkSupabaseConnection.js",
     "dev": "node server.js",
     "migrate:to-supabase": "node server/storage/migrateJsonToSupabase.js",
-    "prepare": "node --check lib/rules.js && node --check lib/auth.js && node --check lib/env.js && node --check server/sportsProvider.js && node --check server/exchangeRateProvider.js && node --check server/storage/index.js && node --check server/storage/jsonStorage.js && node --check server/storage/supabaseStorage.js && node --check server/storage/migrateJsonToSupabase.js && node --check server/storage/checkSupabaseConnection.js && node --check server.js && node --check public/app.js && node test/settlement.test.js",
+    "prepare": "node --check lib/rules.js && node --check lib/auth.js && node --check lib/env.js && node --check lib/safeJson.js && node --check server/sportsProvider.js && node --check server/exchangeRateProvider.js && node --check server/storage/index.js && node --check server/storage/jsonStorage.js && node --check server/storage/supabaseStorage.js && node --check server/storage/migrateJsonToSupabase.js && node --check server/storage/checkSupabaseConnection.js && node --check server.js && node --check public/app.js && node test/settlement.test.js",
     "start": "node server.js",
     "test": "node test/settlement.test.js"
   },

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../lib/rules.js";
 import { findIdentityMatches, normalizeName, normalizePhone, validateRegistrationInput } from "../lib/auth.js";
 import { loadEnvFile, parseEnvFile } from "../lib/env.js";
+import { safeJsonParse } from "../lib/safeJson.js";
 import { getUsdCopRate, isValidUsdCopRate, parseExchangeRateValue } from "../server/exchangeRateProvider.js";
 import { createSportsProvider } from "../server/sportsProvider.js";
 import { createStorage, resolveStorageDriver, validateStorageStartup } from "../server/storage/index.js";
@@ -31,6 +33,19 @@ const users = [
   { id: "u2", role: "USER", name: "Carlos" },
   { id: "admin", role: "ADMIN", name: "Admin" },
 ];
+
+async function waitForHealth(port, attempts = 30) {
+  for (let index = 0; index < attempts; index += 1) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+      if (response.ok) return;
+    } catch {
+      // Server is still starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("Timed out waiting for test server");
+}
 
 const finalMatch = {
   id: "m1",
@@ -545,6 +560,11 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(appSource, /renderAuditLog/);
   assert.match(appSource, /renderPayouts/);
   assert.doesNotMatch(appSource, /<select name="method">/);
+  assert.match(appSource, /function safeJsonParse/);
+  assert.match(appSource, /await response\.text\(\)/);
+  assert.match(appSource, /renderAppError/);
+  assert.match(appSource, /api\("\/api\/state"\)/);
+  assert.doesNotMatch(appSource, /localhost:3000/);
   assert.match(css, /--yellow:\s*#fcd116/i);
   assert.match(css, /--blue:\s*#003893/i);
   assert.match(css, /--red:\s*#ce1126/i);
@@ -588,6 +608,83 @@ test("Storage adapter selects drivers and warns for production JSON", () => {
   assert.throws(() => validateStorageStartup({ DATA_STORAGE_DRIVER: "supabase" }), /Missing SUPABASE_URL/);
 });
 
+test("JSON storage reseeds an empty data/db.json", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "polla-empty-db-"));
+  const dbPath = join(dir, "db.json");
+  writeFileSync(dbPath, "");
+  const storage = createStorage({
+    env: { DATA_STORAGE_DRIVER: "json" },
+    dbPath,
+    seedDb: () => ({ version: 2, users: [], matches: [], predictions: [], payments: [] }),
+    migrateDb: (db) => ({ db, changed: false }),
+  });
+
+  const db = await storage.readDb();
+  assert.equal(db.version, 2);
+  assert.equal(readFileSync(dbPath, "utf8").trim().startsWith("{"), true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("JSON storage backs up corrupted data/db.json and reseeds safely", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "polla-corrupt-db-"));
+  const dbPath = join(dir, "db.json");
+  writeFileSync(dbPath, "{not-json");
+  const storage = createStorage({
+    env: { DATA_STORAGE_DRIVER: "json" },
+    dbPath,
+    seedDb: () => ({ version: 2, users: [], matches: [], predictions: [], payments: [] }),
+    migrateDb: (db) => ({ db, changed: false }),
+  });
+
+  const db = await storage.readDb();
+  assert.equal(db.version, 2);
+  assert.equal(readdirSync(dir).some((file) => /^db\.corrupt-\d+\.json$/.test(file)), true);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("Missing Supabase env vars are reported by storage without crashing startup", async () => {
+  const storage = createStorage({
+    env: { DATA_STORAGE_DRIVER: "supabase" },
+    dbPath: "unused",
+    seedDb: () => ({ version: 2 }),
+    migrateDb: (db) => ({ db, changed: false }),
+  });
+
+  assert.equal(storage.driver, "supabase");
+  await assert.rejects(() => storage.readDb(), /Missing SUPABASE_URL/);
+});
+
+test("/api/state returns JSON on storage error", async () => {
+  const port = 4300 + Math.floor(Math.random() * 500);
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      PORT: String(port),
+      DATA_STORAGE_DRIVER: "supabase",
+      SUPABASE_URL: "",
+      SUPABASE_ANON_KEY: "",
+      SUPABASE_SERVICE_ROLE_KEY: "",
+    },
+    stdio: "ignore",
+  });
+
+  try {
+    await waitForHealth(port);
+    const response = await fetch(`http://127.0.0.1:${port}/api/state`);
+    const text = await response.text();
+    const parsed = safeJsonParse(text);
+    assert.equal(parsed.ok, true);
+    const payload = parsed.value;
+    assert.equal(response.status, 500);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.storage, "Supabase");
+    assert.match(payload.error, /Missing SUPABASE_URL/);
+  } finally {
+    child.kill();
+  }
+});
+
 test("Supabase storage accepts project URLs and REST URLs", async () => {
   const originalFetch = globalThis.fetch;
   const requestedUrls = [];
@@ -596,7 +693,7 @@ test("Supabase storage accepts project URLs and REST URLs", async () => {
     return {
       ok: true,
       status: 200,
-      json: async () => [],
+      text: async () => "[]",
     };
   };
 
@@ -618,6 +715,38 @@ test("Supabase storage accepts project URLs and REST URLs", async () => {
   assert.ok(requestedUrls.length > 0);
   assert.ok(requestedUrls.every((url) => url.startsWith("https://example.supabase.co/rest/v1/")));
   assert.ok(requestedUrls.every((url) => !url.includes("/rest/v1/rest/v1/")));
+});
+
+test("Supabase storage handles empty successful response bodies", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedUrls = [];
+  globalThis.fetch = async (url) => {
+    requestedUrls.push(String(url));
+    const isSnapshotRead = String(url).includes("app_settings?key=eq.app_db_snapshot");
+    return {
+      ok: true,
+      status: 200,
+      text: async () => (isSnapshotRead ? "[]" : ""),
+    };
+  };
+
+  try {
+    const storage = createSupabaseStorage({
+      env: {
+        SUPABASE_URL: "https://example.supabase.co",
+        SUPABASE_ANON_KEY: "anon",
+        SUPABASE_SERVICE_ROLE_KEY: "service",
+      },
+      seedDb: () => ({ version: 2, users: [], matches: [], predictions: [], payments: [] }),
+      migrateDb: (db) => ({ db, changed: false }),
+    });
+    const db = await storage.readDb();
+    assert.equal(db.version, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.ok(requestedUrls.some((url) => url.includes("app_settings")));
 });
 
 test("JSON storage helper preserves uniqueness and persisted payment/audit/export data", async () => {
@@ -671,3 +800,4 @@ test("Supabase migration script does not print or embed secrets", () => {
   assert.match(script, /auditLogs/);
   assert.match(script, /payouts/);
 });
+

@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { safeJsonParse } from "../../lib/safeJson.js";
 
 export function createJsonStorage({ dbPath, seedDb, migrateDb }) {
   async function ensureDb() {
@@ -13,7 +14,17 @@ export function createJsonStorage({ dbPath, seedDb, migrateDb }) {
 
   async function readDb() {
     await ensureDb();
-    const db = JSON.parse(await readFile(dbPath, "utf8"));
+    const text = await readFile(dbPath, "utf8");
+    const parsed = safeJsonParse(text);
+    if (!parsed.ok) {
+      const db = seedDb();
+      if (text.trim()) {
+        await copyFile(dbPath, join(dirname(dbPath), `db.corrupt-${Date.now()}.json`));
+      }
+      await writeDb(db);
+      return db;
+    }
+    const db = parsed.value;
     const migrated = migrateDb(db);
     if (migrated.changed) await writeDb(migrated.db);
     return migrated.db;

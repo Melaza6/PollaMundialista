@@ -158,7 +158,34 @@ function snapshotHelpers(storage) {
 }
 
 export function createStorage(options) {
-  const startup = validateStorageStartup(options.env);
+  let startup;
+  try {
+    startup = validateStorageStartup(options.env);
+  } catch (error) {
+    const driver = resolveStorageDriver(options.env);
+    const storage = {
+      driver,
+      label: driver === "supabase" ? "Supabase" : "Storage unavailable",
+      startupError: error,
+      startupWarnings: [],
+      readDb: async () => {
+        throw Object.assign(new Error(error.message), {
+          cause: error,
+          storageDriver: driver,
+          storageLabel: driver === "supabase" ? "Supabase" : "Storage unavailable",
+        });
+      },
+      writeDb: async () => {
+        throw Object.assign(new Error(error.message), {
+          cause: error,
+          storageDriver: driver,
+          storageLabel: driver === "supabase" ? "Supabase" : "Storage unavailable",
+        });
+      },
+    };
+    storage.helpers = snapshotHelpers(storage);
+    return storage;
+  }
   const storage =
     startup.driver === "supabase"
       ? createSupabaseStorage(options)

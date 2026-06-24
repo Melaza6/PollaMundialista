@@ -305,17 +305,37 @@ function headers() {
     : { "Content-Type": "application/json" };
 }
 
+function safeJsonParse(text, fallback = null) {
+  try {
+    const source = String(text ?? "");
+    if (!source.trim()) return { ok: false, value: fallback, error: new Error("Empty JSON response") };
+    return { ok: true, value: JSON.parse(source), error: null };
+  } catch (error) {
+    return { ok: false, value: fallback, error };
+  }
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, { headers: headers(), ...options });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Request failed");
+  const text = await response.text();
+  const parsed = safeJsonParse(text, { ok: false, error: "Invalid server response", message: text || "No response body" });
+  const payload = parsed.value;
+  if (!response.ok || payload?.ok === false) {
+    const message = payload?.message || payload?.error || response.statusText || "Request failed";
+    throw Object.assign(new Error(message), { payload, status: response.status });
+  }
+  if (!parsed.ok) throw new Error("Invalid server response");
   return payload;
 }
 
 async function loadState() {
-  state = await api("/api/state");
-  selectedMatchId ||= state.nextMatches[0]?.id || state.matches[0]?.id;
-  render();
+  try {
+    state = await api("/api/state");
+    selectedMatchId ||= state.nextMatches[0]?.id || state.matches[0]?.id;
+    render();
+  } catch (error) {
+    renderAppError(error);
+  }
 }
 
 function currentUser() {
@@ -352,6 +372,42 @@ function canEditPredictionRow(prediction) {
   if (prediction.userId !== user.id) return false;
   const match = state.matches.find((item) => item.id === prediction.matchId);
   return match ? !lockInfo(match).locked : false;
+}
+
+function renderAppError(error) {
+  document.documentElement.lang = lang;
+  const payload = error.payload || {};
+  const title = lang === "es" ? "No pudimos cargar la polla" : "We could not load the pool";
+  const retry = lang === "es" ? "Intentar de nuevo" : "Try again";
+  const detail = payload.message || error.message || (lang === "es" ? "Error del servidor." : "Server error.");
+  app.innerHTML = `
+    <header class="shell-header">
+      <div>
+        <p class="eyebrow">Melaza USA · polla.melazausa.com</p>
+        <h1>${t("appTitle")}</h1>
+      </div>
+      <div class="header-actions">
+        <select id="languageSelect" aria-label="${t("language")}">
+          <option value="es"${lang === "es" ? " selected" : ""}>Español</option>
+          <option value="en"${lang === "en" ? " selected" : ""}>English</option>
+        </select>
+      </div>
+    </header>
+    <main class="shell">
+      <section class="panel empty-state">
+        <h2>${title}</h2>
+        <p>${escapeHtml(detail)}</p>
+        ${payload.storage ? `<p class="muted">Storage: ${escapeHtml(payload.storage)}</p>` : ""}
+        <button id="retryLoadState" type="button">${retry}</button>
+      </section>
+    </main>
+  `;
+  document.getElementById("languageSelect")?.addEventListener("change", (event) => {
+    lang = event.target.value;
+    localStorage.setItem(storage.language, lang);
+    renderAppError(error);
+  });
+  document.getElementById("retryLoadState")?.addEventListener("click", () => loadState());
 }
 
 function render() {
@@ -1158,7 +1214,8 @@ function bindEvents() {
       const type = button.dataset.exportType;
       const response = await fetch(`/api/admin/export/${type}`, { headers: headers() });
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: "Export failed" }));
+        const parsed = safeJsonParse(await response.text(), { error: "Export failed" });
+        const payload = parsed.value;
         throw new Error(payload.error || "Export failed");
       }
       const text = await response.text();
@@ -1223,6 +1280,4 @@ function duplicateValues(values) {
   return [...duplicates];
 }
 
-loadState().catch((error) => {
-  app.innerHTML = `<main class="shell"><section class="panel"><h1>App error</h1><p>${escapeHtml(error.message)}</p></section></main>`;
-});
+loadState();

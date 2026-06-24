@@ -1,3 +1,5 @@
+import { safeJsonParse } from "../../lib/safeJson.js";
+
 const SNAPSHOT_KEY = "app_db_snapshot";
 
 function requiredEnv(env, key) {
@@ -25,12 +27,14 @@ async function request(client, path, options = {}) {
     ...options,
     headers: { ...client.headers, ...(options.headers || {}) },
   });
+  const text = await response.text().catch(() => "");
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
     throw new Error(`Supabase request failed (${response.status}): ${text || response.statusText}`);
   }
-  if (response.status === 204) return null;
-  return response.json();
+  if (response.status === 204 || !text.trim()) return null;
+  const parsed = safeJsonParse(text);
+  if (!parsed.ok) throw new Error(`Supabase returned invalid JSON: ${parsed.error.message}`);
+  return parsed.value;
 }
 
 async function upsertRows(client, table, rows, conflict = "id") {
@@ -281,3 +285,5 @@ export function createSupabaseStorage({ env = process.env, seedDb, migrateDb }) 
     checkConnection,
   };
 }
+
+

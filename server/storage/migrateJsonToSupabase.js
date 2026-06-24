@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadEnvFile } from "../../lib/env.js";
+import { safeJsonParse } from "../../lib/safeJson.js";
 import { createSupabaseStorage } from "./supabaseStorage.js";
 
 loadEnvFile();
@@ -23,7 +24,9 @@ function dedupeUsersByPhone(users) {
 
 async function main() {
   const dbPath = resolve("data/db.json");
-  const db = JSON.parse(await readFile(dbPath, "utf8"));
+  const parsed = safeJsonParse(await readFile(dbPath, "utf8"));
+  if (!parsed.ok) throw new Error(`Invalid JSON database: ${parsed.error.message}`);
+  const db = parsed.value;
   validateDb(db);
   const imported = {
     ...db,

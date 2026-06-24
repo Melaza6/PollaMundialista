@@ -29,6 +29,7 @@ import {
   validateRegistrationInput,
 } from "./lib/auth.js";
 import { loadEnvFile } from "./lib/env.js";
+import { safeJsonParse } from "./lib/safeJson.js";
 import { createSportsProvider } from "./server/sportsProvider.js";
 import { getUsdCopRate, isValidUsdCopRate } from "./server/exchangeRateProvider.js";
 import { createStorage } from "./server/storage/index.js";
@@ -544,11 +545,9 @@ async function readBody(req) {
   let body = "";
   for await (const chunk of req) body += chunk;
   if (!body) return {};
-  try {
-    return JSON.parse(body);
-  } catch {
-    throw Object.assign(new Error("Invalid JSON body"), { status: 400 });
-  }
+  const parsed = safeJsonParse(body, {});
+  if (!parsed.ok) throw Object.assign(new Error("Invalid JSON body"), { status: 400 });
+  return parsed.value;
 }
 
 function currentUserFromRequest(db, req) {
@@ -718,12 +717,32 @@ function buildWhatsappMessage(db, type, language, matchId) {
   ].join("\n");
 }
 
+function apiErrorPayload(error) {
+  const storage = error.storageLabel || appStorage.label || appStorage.driver || "unknown";
+  return {
+    ok: false,
+    error: error.message || "Server error",
+    storage,
+    message:
+      error.message ||
+      (storage === "Supabase"
+        ? "Supabase storage is unavailable. Check environment variables and migrations."
+        : "Local JSON storage is unavailable. The app created or will create a safe database when possible."),
+  };
+}
+
 async function handleApi(req, res, pathname) {
-  const db = await readDb();
+  if (req.method === "GET" && pathname === "/api/health") return sendJson(res, 200, { ok: true });
+
+  let db;
+  try {
+    db = await readDb();
+  } catch (error) {
+    return sendJson(res, error.status || 500, apiErrorPayload(error));
+  }
   const parts = pathname.split("/").filter(Boolean);
   const currentUser = currentUserFromRequest(db, req);
 
-  if (req.method === "GET" && pathname === "/api/health") return sendJson(res, 200, { ok: true });
   if (req.method === "GET" && pathname === "/api/live-readiness") return sendJson(res, 200, liveReadiness());
   if (req.method === "GET" && pathname === "/api/state") return sendJson(res, 200, statePayload(db, currentUser));
   if (req.method === "GET" && pathname === "/api/sync/status") {
@@ -1334,7 +1353,7 @@ createServer(async (req, res) => {
     }
     await serveStatic(req, res, url.pathname);
   } catch (error) {
-    sendJson(res, error.status || 500, { error: error.message || "Server error" });
+    sendJson(res, error.status || 500, apiErrorPayload(error));
   }
 }).listen(port, () => {
   console.log(`Polla Mundialista 2026 running at http://localhost:${port}`);
