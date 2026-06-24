@@ -24,6 +24,7 @@ import { loadEnvFile, parseEnvFile } from "../lib/env.js";
 import { getUsdCopRate, isValidUsdCopRate, parseExchangeRateValue } from "../server/exchangeRateProvider.js";
 import { createSportsProvider } from "../server/sportsProvider.js";
 import { createStorage, resolveStorageDriver, validateStorageStartup } from "../server/storage/index.js";
+import { createSupabaseStorage } from "../server/storage/supabaseStorage.js";
 
 const users = [
   { id: "u1", role: "USER", name: "Ana" },
@@ -585,6 +586,38 @@ test("Storage adapter selects drivers and warns for production JSON", () => {
   assert.equal(startup.driver, "json");
   assert.equal(startup.warnings.length, 1);
   assert.throws(() => validateStorageStartup({ DATA_STORAGE_DRIVER: "supabase" }), /Missing SUPABASE_URL/);
+});
+
+test("Supabase storage accepts project URLs and REST URLs", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedUrls = [];
+  globalThis.fetch = async (url) => {
+    requestedUrls.push(String(url));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => [],
+    };
+  };
+
+  try {
+    const storage = createSupabaseStorage({
+      env: {
+        SUPABASE_URL: "https://example.supabase.co/rest/v1",
+        SUPABASE_ANON_KEY: "anon",
+        SUPABASE_SERVICE_ROLE_KEY: "service",
+      },
+      seedDb: () => ({ version: 2, users: [], matches: [], predictions: [], payments: [] }),
+      migrateDb: (db) => ({ db, changed: false }),
+    });
+    await storage.checkConnection();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.ok(requestedUrls.length > 0);
+  assert.ok(requestedUrls.every((url) => url.startsWith("https://example.supabase.co/rest/v1/")));
+  assert.ok(requestedUrls.every((url) => !url.includes("/rest/v1/rest/v1/")));
 });
 
 test("JSON storage helper preserves uniqueness and persisted payment/audit/export data", async () => {

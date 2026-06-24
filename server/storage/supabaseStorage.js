@@ -7,7 +7,8 @@ function requiredEnv(env, key) {
 }
 
 function createClient(env = process.env) {
-  const url = requiredEnv(env, "SUPABASE_URL").replace(/\/+$/, "");
+  const rawUrl = requiredEnv(env, "SUPABASE_URL").replace(/\/+$/, "");
+  const restUrl = rawUrl.endsWith("/rest/v1") ? rawUrl : `${rawUrl}/rest/v1`;
   requiredEnv(env, "SUPABASE_ANON_KEY");
   const serviceKey = requiredEnv(env, "SUPABASE_SERVICE_ROLE_KEY");
   const headers = {
@@ -15,11 +16,12 @@ function createClient(env = process.env) {
     Authorization: `Bearer ${serviceKey}`,
     "Content-Type": "application/json",
   };
-  return { url, headers };
+  return { restUrl, headers };
 }
 
 async function request(client, path, options = {}) {
-  const response = await fetch(`${client.url}/rest/v1/${path}`, {
+  const response = await fetch(`${client.restUrl}/${path}`,
+  {
     ...options,
     headers: { ...client.headers, ...(options.headers || {}) },
   });
