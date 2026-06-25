@@ -482,3 +482,83 @@ pnpm db:check
 
 ### Recommended next action
 - Commit/push the runtime fix and trigger a Vercel redeploy, then run the final production QA checklist.
+
+## 2026-06-25 Final Vercel production QA after redeploy
+
+### Summary
+- Ran final production QA against `https://polla.melazausa.com` after redeploy.
+- Local build/test/database checks passed.
+- Production domain is reachable and `/api/state` uses Supabase.
+- Launch verdict: **Not ready** because `/api/live-readiness` is still `ready:false` and unauthenticated `/api/state` returns admin-sensitive collections.
+
+### Commands run
+```bash
+pnpm build
+pnpm test
+pnpm db:check
+```
+
+### Local verification results
+- `pnpm build`: passed.
+- `pnpm test`: passed, 43/43 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+
+### Production endpoint QA
+- `/`: HTTP 200.
+- `/api/state`: HTTP 200, valid JSON, storage driver is `supabase`.
+- `/api/live-readiness`: HTTP 200, valid JSON, but `ready:false`.
+- `ADMIN_PIN` readiness check: false.
+- `SESSION_SECRET` readiness check: true.
+- `/app.js`: HTTP 200.
+- `/styles.css`: HTTP 200.
+- `/rules`, `/reglas`, `/project-guide`, `/guide`, `/docs/LEARNING_GUIDE.md`, and `/DEPLOYMENT.md`: HTTP 200 app-shell responses through SPA fallback.
+
+### Public asset and secret safety QA
+- `/app.js`: no secret marker matches for real API keys, Supabase keys, `SESSION_SECRET`, `ADMIN_PIN`, or `DATABASE_URL`.
+- `/app.js`: no Google/Gmail/Firebase/OAuth auth markers found.
+- `/styles.css`: responsive/mobile markers found: `@media`, `user-bottom-nav`, `admin-tabs`, `--tap: 44px`, `overflow-x`, and `min-height: var(--tap)`.
+- `/styles.css`: Colombian palette markers found: `#FCD116`, `#003893`, `#CE1126`, and `#071A3D`.
+- `/api/state`, `/app.js`, `/styles.css`, and `/`: no secret marker matches for real API keys, Supabase keys, `SESSION_SECRET`, `ADMIN_PIN`, or `DATABASE_URL`.
+
+### Sports API readiness
+- `/api/state` reports `sportsVerification.activeProvider` as `football-data`.
+- Sports API is configured, status is `SYNCED`, and appears to be using FIFA World Cup 2026 provider-backed data.
+- No fake-result marker was found in the live state; result sync message reports last completed fixtures checked and results updated.
+
+### Exchange-rate readiness
+- Live exchange rate is `3428.32`, which is within the valid 1000-10000 COP/USD range.
+- No invalid USD/COP value such as `342,595` or `342595` was observed in readiness/state data.
+
+### Access-control and privacy findings
+- Regular unauthenticated UI appears to start on the landing/login shell and admin tabs are role-gated in client code.
+- P0/P1 blocker: unauthenticated `/api/state` currently includes admin-sensitive collections such as `users`, `payments`, `adminPredictions`, and `auditLogs` keys. Counts observed: `users=4`, `payments=19`, `adminPredictions=19`, `auditLogs=0`.
+- Admin deployment metadata was not present for unauthenticated state, and no secrets were observed.
+
+### Page reachability findings
+- Landing page is reachable at `/`.
+- Rules are reachable through the in-app `#rules` link and SPA fallback routes return HTTP 200.
+- Project Guide routes return HTTP 200 via the SPA fallback, but no distinct public Project Guide UI marker was confirmed in the shipped client source.
+
+### Visual/mobile QA status
+- In-app browser setup failed in this environment with a browser connector metadata error.
+- Local Playwright is not installed, so screenshot-based viewport QA at 375px, 768px, and 1280px could not be completed here.
+- Source CSS contains the expected responsive markers, but real visual QA is still required on a device/browser.
+
+### Manual viewport checks still required
+- At 375px: verify no horizontal overflow, bottom nav usable, login/sign-up readable, prediction score inputs tappable, match cards compact, and admin tabs scroll cleanly.
+- At 768px: verify tablet layout, cards/grid wrapping, admin payment/result panels, and rules readability.
+- At 1280px: verify desktop spacing, admin dashboard density, tables/scroll containers, and no excessive empty or oversized panels.
+
+### Launch blockers
+- P0: `/api/live-readiness` returns `ready:false` because `ADMIN_PIN` readiness is false. Set a private non-default `ADMIN_PIN` in Vercel production env vars and redeploy.
+- P0/P1: unauthenticated `/api/state` exposes admin-sensitive collections. Public state should be scoped to regular-user-safe fields, with admin collections returned only after admin authentication.
+- P1: complete real browser visual QA at 375px, 768px, and 1280px.
+- P2: confirm whether Project Guide needs a visible public app page/link, because current route checks only confirm SPA fallback reachability.
+
+### Launch verdict
+- **Not ready for launch** until the readiness check passes and unauthenticated state is scoped safely.
+
+### Recommended next action
+- Fix production `ADMIN_PIN` env configuration in Vercel.
+- Patch `/api/state` to return only user-safe data unless an authenticated admin session is present.
+- Redeploy, then re-run this QA checklist including browser viewport checks.
