@@ -324,3 +324,71 @@ Real secrets must not appear.
 - Uncommitted UX changes remain in the working tree.
 - No secrets were printed or added.
 - No commit was made during this pass.
+
+## 2026-06-25 Vercel readiness verification completion
+
+### Summary
+- Finished verification for the current Vercel readiness pass in `C:\Users\Owner\Documents\Polla mundial`.
+- Confirmed `api/index.js` imports the exported `handleRequest` from `server.js` for Vercel Functions.
+- Confirmed `server.js` still starts a listener for local `node server.js`, while `VERCEL=1` import mode does not start a listener.
+- Hardened production credential behavior so blank/missing `ADMIN_PIN` and `SESSION_SECRET` do not silently use local demo defaults in production.
+- Added concise comments around production credential fail-closed behavior, admin-only deployment metadata, and the Vercel/local listener boundary.
+- Fixed visible mojibake introduced in `public/app.js` by switching affected separators/placeholders to ASCII-safe text.
+
+### Files changed
+- `.env.example`
+- `.gitignore`
+- `AGENTS.md`
+- `.agents/code-comments-documentation.md`
+- `api/index.js`
+- `vercel.json`
+- `DEPLOYMENT.md`
+- `docs/LEARNING_GUIDE.md`
+- `package.json`
+- `public/app.js`
+- `server.js`
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+
+### Comments added
+- `server.js`: production credentials fail closed instead of accepting local demo credentials.
+- `server.js`: deployment metadata is admin-only and must not expose raw env vars/secrets.
+- `server.js`: `handleRequest` is shared by local Node and the Vercel Function adapter.
+- `server.js`: Vercel imports the handler, so only local runs open a listener.
+
+### Verification commands
+```bash
+node --check server.js
+node --check api/index.js
+node --check public/app.js
+node --check test/settlement.test.js
+pnpm build
+pnpm test
+pnpm db:check
+```
+
+### Verification results
+- `VERCEL=1 node -e "await import('./server.js')"`: passed; import returned without listener.
+- `vercel.json` parse/runtime check: passed; rewrite destination is `/api` and runtime is `nodejs20.x`.
+- `pnpm build`: passed.
+- `pnpm test`: passed, 43/43 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+- Local smoke on `http://localhost:3102`: `/`, `/api/state`, and `/api/live-readiness` returned valid responses.
+- Production-mode blank credential smoke on `http://localhost:3104`: `/api/live-readiness` returned `ADMIN_PIN=false` and `SESSION_SECRET=false`; admin auth with `2026` returned 503 `Admin PIN is not configured.`
+- Secret scan: only placeholder names/docs/test references were present; no real API keys, Supabase keys, admin PIN, session secret, or database URL were found in the diff.
+
+### Remaining risks
+- Real Vercel preview/production deployment still needs to be created and tested.
+- Configure production env vars in Vercel dashboard, especially `ADMIN_PIN`, `SESSION_SECRET`, Supabase keys, and sports API keys.
+- Confirm `polla.melazausa.com` DNS/HTTPS in Vercel.
+- Run a real browser/mobile visual QA pass at 375px, 768px, and 1280px after deployment.
+- Confirm admin export backup in the deployed environment before real family use.
+
+### Recommended next agents
+- `.agents/mobile-responsive-review.md`
+- `.agents/ui-ux-review.md`
+- `.agents/qa-test-engineer.md`
+
+### Git status
+- Changes remain uncommitted.
+- No commit was made during this pass.

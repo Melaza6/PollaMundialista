@@ -821,3 +821,66 @@ test("Supabase migration script does not print or embed secrets", () => {
   assert.match(script, /auditLogs/);
   assert.match(script, /payouts/);
 });
+
+test("Vercel deployment config, env placeholders, and docs are launch-ready", () => {
+  const gitignore = readFileSync(".gitignore", "utf8");
+  for (const entry of [".env", ".env.local", ".vercel", "data/*.tmp", "data/db.backup-*.json", "data/db.corrupt-*.json"]) {
+    assert.match(gitignore, new RegExp(entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  const envExample = readFileSync(".env.example", "utf8");
+  assert.match(envExample, /PUBLIC_BASE_URL=https:\/\/polla\.melazausa\.com/);
+  assert.match(envExample, /DATA_STORAGE_DRIVER=supabase/);
+  assert.match(envExample, /ENABLE_VERCEL_ANALYTICS=true/);
+  assert.match(envExample, /ENABLE_VERCEL_SPEED_INSIGHTS=true/);
+  for (const key of ["ADMIN_PIN", "SESSION_SECRET", "API_FOOTBALL_KEY", "FOOTBALL_DATA_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "DATABASE_URL"]) {
+    assert.match(envExample, new RegExp(`^${key}=$`, "m"));
+  }
+
+  const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+  assert.equal(vercelConfig.installCommand, "pnpm install --frozen-lockfile");
+  assert.equal(vercelConfig.buildCommand, "pnpm build");
+  assert.equal(vercelConfig.functions["api/index.js"].runtime, "nodejs20.x");
+  assert.deepEqual(vercelConfig.rewrites[0], { source: "/(.*)", destination: "/api" });
+
+  const adapter = readFileSync("api/index.js", "utf8");
+  assert.match(adapter, /export \{ default \} from ["']\.\.\/server\.js["']/);
+
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.scripts["vercel:check"], "pnpm build && pnpm test");
+
+  const deploymentDocs = readFileSync("DEPLOYMENT.md", "utf8");
+  const learningGuide = readFileSync("docs/LEARNING_GUIDE.md", "utf8");
+  for (const phrase of [
+    "Vercel Deployments",
+    "Preview Deployments",
+    "Production Deployment",
+    "Web Analytics",
+    "Speed Insights",
+    "polla.melazausa.com",
+    "Supabase should remain the production database",
+    "Rollback",
+    "Production Smoke Test",
+  ]) {
+    assert.match(deploymentDocs, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(learningGuide, /Vercel Services Used/);
+  assert.match(learningGuide, /Why Supabase Remains The Database/);
+});
+
+test("Deployment diagnostics stay admin-only and do not expose secrets", () => {
+  const serverSource = readFileSync("server.js", "utf8");
+  const appSource = readFileSync("public/app.js", "utf8");
+
+  assert.match(serverSource, /deployment: currentUser\?\.role === "ADMIN" \? deploymentMetadata\(\) : null/);
+  assert.match(serverSource, /VERCEL_GIT_COMMIT_SHA/);
+  assert.match(serverSource, /commitSha\.slice\(0, 7\)/);
+  assert.match(serverSource, /const isProduction = process\.env\.NODE_ENV === "production"/);
+  assert.match(serverSource, /adminPin = process\.env\.ADMIN_PIN \|\| \(isProduction \? "" : "2026"\)/);
+  assert.match(serverSource, /sessionSecret = process\.env\.SESSION_SECRET \|\| \(isProduction \? "" : "dev-session-secret-change-me"\)/);
+  assert.match(serverSource, /if \(!adminPin\) return sendJson\(res, 503/);
+  assert.match(serverSource, /if \(!process\.env\.VERCEL\)/);
+  assert.doesNotMatch(appSource, /SUPABASE_SERVICE_ROLE_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL/);
+  assert.match(appSource, /renderDeploymentStatus/);
+  assert.match(appSource, /deploymentStatus/);
+});

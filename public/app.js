@@ -137,6 +137,12 @@ const i18n = {
     missingPredictions: "Faltan predicciones",
     unpaidUsers: "Usuarios sin pago verificado",
     storageMode: "Almacenamiento",
+    deploymentStatus: "Despliegue",
+    environment: "Entorno",
+    branch: "Rama",
+    commit: "Commit",
+    deploymentUrl: "URL de despliegue",
+    publicBaseUrl: "URL publica",
     jsonStorageWarning: "Advertencia: el almacenamiento local JSON no es recomendado para producci√≥n.",
     loginRequired: "Debes iniciar sesi√≥n para predecir.",
     adminOnly: "Los controles de administrador est√°n ocultos para usuarios regulares.",
@@ -275,6 +281,12 @@ const i18n = {
     missingPredictions: "Missing predictions",
     unpaidUsers: "Users without verified payment",
     storageMode: "Storage",
+    deploymentStatus: "Deployment",
+    environment: "Environment",
+    branch: "Branch",
+    commit: "Commit",
+    deploymentUrl: "Deployment URL",
+    publicBaseUrl: "Public URL",
     jsonStorageWarning: "Warning: local JSON storage is not recommended for production.",
     loginRequired: "You must log in to predict.",
     adminOnly: "Admin controls are hidden from regular users.",
@@ -509,7 +521,7 @@ function renderUserHome() {
       ${statCard(t("submitted"), `${predicted} / ${state.nextMatches.length || 4}`)}
       ${statCard(t("payment"), `${payment.verified} ${t("verifiedByAdmin")}`)}
       ${statCard(t("pendingVerification"), payment.pending)}
-      ${statCard(t("standings"), standing ? `#${standing.rank} ∑ ${standing.points} pts` : "ó")}
+      ${statCard(t("standings"), standing ? `#${standing.rank} - ${standing.points} pts` : "-")}
     </section>
     <section class="panel">
       <div class="panel-heading"><h2>${t("next3")}</h2><button class="ghost small" data-user-tab="matches">${t("matches")}</button></div>
@@ -581,7 +593,7 @@ function renderResultsControls() {
     <div class="provider-box">
       <strong>${t("apiProvider")}: ${escapeHtml(state.settings.footballApiProvider || state.settings.resultsProvider)}</strong>
       <p>${t("syncStatus")}: ${escapeHtml(state.sportsSync?.status || "PENDING")}</p>
-      <p>${t("lastSync")}: ${state.sportsSync?.lastSyncedAt ? fmtDate(state.sportsSync.lastSyncedAt) : "ó"}</p>
+      <p>${t("lastSync")}: ${state.sportsSync?.lastSyncedAt ? fmtDate(state.sportsSync.lastSyncedAt) : "-"}</p>
       <div class="button-row"><button class="ghost small" id="syncRealMatchesBtn">${t("syncRealMatches")}</button><button class="ghost small" id="syncRecentResultsBtn">${t("syncResult")}</button></div>
     </div>
   `;
@@ -591,11 +603,26 @@ function renderPaymentSummary() {
   return `<div class="dashboard-grid compact-dashboard">${statCard(t("totalVerified"), state.prizeSummary.verifiedEntries)}${statCard(t("basePot"), money(state.prizeSummary.basePotCop))}${statCard(t("usdExcess"), money(state.prizeSummary.usdExchangeExcessCop))}${statCard(t("totalPending"), money(state.prizeSummary.totalPendingCop))}</div>`;
 }
 
+function renderDeploymentStatus() {
+  const deployment = state.deployment || {};
+  const rows = [
+    [t("apiProvider"), deployment.provider || "local"],
+    [t("environment"), deployment.environment || "-"],
+    [t("branch"), deployment.branch || "-"],
+    [t("commit"), deployment.commit || "-"],
+    [t("deploymentUrl"), deployment.deploymentUrl || "-"],
+    [t("publicBaseUrl"), deployment.publicBaseUrl || state.settings?.publicBaseUrl || "-"],
+  ];
+  return `<div class="mini-list">${rows
+    .map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
+    .join("")}</div>`;
+}
 function renderAdminTools() {
   return `
     <section class="panel"><h2>${t("exchangeRate")}</h2><div class="provider-box">${renderExchangeRateSummary()}<button class="ghost small" id="syncExchangeRateBtn">${t("syncExchangeRate")}</button></div></section>
     <section class="panel"><h2>${t("apiVerification")}</h2>${renderApiVerification()}</section>
     <section class="panel"><h2>${t("storageMode")}</h2><div class="provider-box"><strong>${escapeHtml(state.storage?.label || state.storage?.driver || "json")}</strong>${state.storage?.warning ? `<p class="warning">${t("jsonStorageWarning")}</p>` : ""}</div></section>
+    <section class="panel"><h2>${t("deploymentStatus")}</h2>${renderDeploymentStatus()}</section>
     <section class="panel"><h2>${t("users")}</h2>${renderAdminUsers()}</section>
     <section class="panel admin-wide"><details class="compact-details"><summary>${t("exports")}</summary>${renderExports()}</details></section>
     <section class="panel admin-wide"><details class="compact-details"><summary>${t("auditLog")}</summary>${renderAuditLog()}</details></section>
@@ -603,7 +630,7 @@ function renderAdminTools() {
 }
 
 function renderStandingsPreview() {
-  if (!state.standings.length) return `<p class="hint empty-state">ó</p>`;
+  if (!state.standings.length) return `<p class="hint empty-state">-</p>`;
   return `<div class="mini-list">${state.standings.slice(0, 5).map((row) => `<div><strong>#${row.rank} ${escapeHtml(row.name)}</strong><span>${row.points} pts</span></div>`).join("")}</div>`;
 }
 
@@ -614,8 +641,8 @@ function render() {
   if (!user) {
     app.innerHTML = `
       <header class="shell-header">
-        <div><p class="eyebrow">Melaza USA ∑ polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${t("tagline")}</p></div>
-        <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>EspaÒol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select></div>
+        <div><p class="eyebrow">Melaza USA - polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${t("tagline")}</p></div>
+        <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>Espanol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select></div>
       </header>
       <main class="shell landing-shell"><section class="panel landing-panel"><h2>${t("login")} / ${t("signup")}</h2><p>${t("tagline")}</p><a class="link-button ghost" href="#rules">${t("rulesPage")}</a></section>${renderLogin()}</main>
     `;
@@ -626,8 +653,8 @@ function render() {
   const admin = isAdmin();
   app.innerHTML = `
     <header class="shell-header">
-      <div><p class="eyebrow">Melaza USA ∑ polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${admin ? t("matchDay") : t("tagline")}</p></div>
-      <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>EspaÒol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select><span class="user-chip">${escapeHtml(user.name)} ∑ ${user.role}</span><button id="logoutBtn" class="ghost">${t("logout")}</button></div>
+      <div><p class="eyebrow">Melaza USA - polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${admin ? t("matchDay") : t("tagline")}</p></div>
+      <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>Espanol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select><span class="user-chip">${escapeHtml(user.name)} - ${user.role}</span><button id="logoutBtn" class="ghost">${t("logout")}</button></div>
     </header>
     ${admin ? renderTabs("admin", activeAdminTab) : renderTabs("user", activeUserTab)}
     <main class="shell ${admin ? "admin-shell" : "user-shell"}">${admin ? renderAdminView() : renderUserView()}</main>

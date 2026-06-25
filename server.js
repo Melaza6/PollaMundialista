@@ -42,8 +42,24 @@ const dataDir = join(__dirname, "data");
 const dbPath = join(dataDir, "db.json");
 const port = Number(process.env.PORT || 3000);
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || "https://polla.melazausa.com";
-const adminPin = process.env.ADMIN_PIN || "2026";
-const sessionSecret = process.env.SESSION_SECRET || "dev-session-secret-change-me";
+const isProduction = process.env.NODE_ENV === "production";
+// Production must fail closed instead of accepting local demo credentials.
+const adminPin = process.env.ADMIN_PIN || (isProduction ? "" : "2026");
+const sessionSecret = process.env.SESSION_SECRET || (isProduction ? "" : "dev-session-secret-change-me");
+
+// Safe admin-only deployment metadata; never expose raw env vars or secrets.
+function deploymentMetadata() {
+  const vercelUrl = String(process.env.VERCEL_URL || "").trim();
+  const commitSha = String(process.env.VERCEL_GIT_COMMIT_SHA || "").trim();
+  return {
+    provider: process.env.VERCEL ? "vercel" : "local",
+    environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "development",
+    branch: process.env.VERCEL_GIT_COMMIT_REF || null,
+    commit: commitSha ? commitSha.slice(0, 7) : null,
+    deploymentUrl: vercelUrl ? `https://${vercelUrl}` : null,
+    publicBaseUrl,
+  };
+}
 const sportsProvider = createSportsProvider(process.env);
 const appStorage = createStorage({ env: process.env, dbPath, seedDb, migrateDb });
 for (const warning of appStorage.startupWarnings || []) console.warn(warning);
@@ -390,12 +406,12 @@ function liveReadiness() {
     },
     {
       key: "ADMIN_PIN",
-      ok: adminPin !== "2026",
+      ok: Boolean(adminPin) && adminPin !== "2026",
       message: "Set a private ADMIN_PIN before going live.",
     },
     {
       key: "SESSION_SECRET",
-      ok: sessionSecret !== "dev-session-secret-change-me",
+      ok: Boolean(sessionSecret) && sessionSecret !== "dev-session-secret-change-me",
       message: "Set SESSION_SECRET before going live.",
     },
     {
@@ -557,7 +573,7 @@ function currentUserFromRequest(db, req) {
 function requireAdmin(db, req) {
   const user = currentUserFromRequest(db, req);
   if (canUseAdminAction(user)) return user;
-  if (req.headers["x-admin-pin"] === adminPin) return db.users.find((item) => item.role === "ADMIN");
+  if (adminPin && req.headers["x-admin-pin"] === adminPin) return db.users.find((item) => item.role === "ADMIN");
   return null;
 }
 
@@ -618,6 +634,7 @@ function statePayload(db, currentUser = null) {
     tournamentBonus,
     settlements,
     exchangeRate: db.exchangeRate,
+    deployment: currentUser?.role === "ADMIN" ? deploymentMetadata() : null,
     storage: {
       driver: appStorage.driver,
       label: appStorage.label,
@@ -858,6 +875,7 @@ async function handleApi(req, res, pathname) {
 
   if (req.method === "POST" && pathname === "/api/auth/admin") {
     const body = await readBody(req);
+    if (!adminPin) return sendJson(res, 503, { error: "Admin PIN is not configured." });
     if (String(body.pin || "") !== adminPin) return sendJson(res, 403, { error: "Invalid admin PIN" });
     const admin = db.users.find((user) => user.role === "ADMIN");
     const sessionToken = startSession(db, admin, "ADMIN");
@@ -1344,7 +1362,8 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
-createServer(async (req, res) => {
+// Shared by local Node and the Vercel Function adapter.
+export async function handleRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (url.pathname.startsWith("/api/")) {
@@ -1355,6 +1374,13 @@ createServer(async (req, res) => {
   } catch (error) {
     sendJson(res, error.status || 500, apiErrorPayload(error));
   }
-}).listen(port, () => {
-  console.log(`Polla Mundialista 2026 running at http://localhost:${port}`);
-});
+}
+
+export default handleRequest;
+
+// Vercel imports handleRequest as a function, so only local runs should open a listener.
+if (!process.env.VERCEL) {
+  createServer(handleRequest).listen(port, () => {
+    console.log(`Polla Mundialista 2026 running at http://localhost:${port}`);
+  });
+}

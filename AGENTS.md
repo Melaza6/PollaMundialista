@@ -279,6 +279,8 @@ For professional UI/UX review tasks, also follow:
 
 - `.agents/supabase-rls-policies.md` for Supabase Row Level Security, policies, service-role key safety, database access control, and preventing public data exposure.
 
+- `.agents/code-comments-documentation.md` for useful code comments, JSDoc, developer documentation, and explaining complex business/security/financial logic without clutter.
+
 ## UX rules
 
 The app should feel fast and simple, not like a long admin database.
