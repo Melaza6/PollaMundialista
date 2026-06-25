@@ -392,3 +392,93 @@ pnpm db:check
 ### Git status
 - Changes remain uncommitted.
 - No commit was made during this pass.
+
+## 2026-06-25 Final Vercel preview QA
+
+### Summary
+- Ran final production-style QA against the current GitHub-ready folder and live domain `https://polla.melazausa.com`.
+- Verified local build/test health, deployed domain reachability, `/api/state`, `/api/live-readiness`, Supabase storage connectivity, deployed JS/CSS safety markers, and responsive source markers.
+- Browser screenshot-based viewport QA could not be completed because the in-app browser connector failed during setup and local Playwright is not installed.
+
+### Commands run
+```bash
+pnpm build
+pnpm test
+pnpm db:check
+```
+
+### Results
+- `pnpm build`: passed.
+- `pnpm test`: passed, 43/43 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+- `https://polla.melazausa.com/`: HTTP 200.
+- `https://polla.melazausa.com/api/state`: HTTP 200, valid JSON, `dataStorageDriver` is `supabase`.
+- `https://polla.melazausa.com/api/live-readiness`: HTTP 200 but `ready:false` because `ADMIN_PIN` check is failing.
+- `https://polla.melazausa.com/app.js`: HTTP 200, no secret markers, no Google/Gmail markers, user/admin tab markers present.
+- `https://polla.melazausa.com/styles.css`: HTTP 200, mobile nav/admin tabs/tap target markers present.
+- Local diff secret scan: no matches for real API keys, Supabase keys, admin PIN, session secret, or database URL.
+
+### Mobile/tablet/desktop QA status
+- Source/deployed CSS markers verified for mobile bottom nav, admin tabs, 44px tap target token, mobile media query, and responsive table/card handling.
+- Actual visual viewport checks at 375px, 768px, and 1280px were not completed due unavailable browser automation in this environment.
+
+### Launch blockers
+- P0: `/api/live-readiness` returns `ready:false` on the live domain because `ADMIN_PIN` is not passing readiness. Set a private non-default `ADMIN_PIN` in Vercel production env vars and redeploy.
+
+### Remaining risks
+- Run real browser visual QA on the Vercel deployment at 375px, 768px, and 1280px.
+- Verify admin login and admin Tools in the deployed app after fixing `ADMIN_PIN`.
+- Confirm production domain remains HTTPS-valid after DNS propagation and future redeploys.
+- Confirm export backup from the deployed admin UI before real family use.
+
+### Git status
+- Working tree was clean before this handoff update.
+- No commit was made in this QA pass.
+
+## 2026-06-25 Vercel runtime build fix
+
+### Summary
+- Fixed the Vercel build failure `Function Runtimes must have a valid version` by removing the invalid `functions.runtime` entry from `vercel.json`.
+- Vercel now uses its default Node runtime for `api/index.js`; Node version pinning is handled through `package.json` with `engines.node` set to `22.x`.
+- Confirmed `api/index.js` exports the default handler from `server.js`, and `server.js` only starts a listener when not running under Vercel.
+- No business logic was changed.
+
+### Files changed
+- `vercel.json`: removed invalid `functions["api/index.js"].runtime`; kept `maxDuration` and the `/api` rewrite.
+- `package.json`: pinned Node with `"engines": { "node": "22.x" }`.
+- `test/settlement.test.js`: updated Vercel deployment config assertion to require no explicit runtime and to verify the Node engine pin.
+- `docs/AGENT_HANDOFF.md`: recorded this verification pass.
+
+### Local verification
+```bash
+node --check api/index.js
+node --check server.js
+node --check public/app.js
+pnpm build
+pnpm test
+pnpm db:check
+```
+
+### Results
+- `node --check api/index.js`: passed.
+- `node --check server.js`: passed.
+- `node --check public/app.js`: passed.
+- Vercel import smoke with `VERCEL=1`: passed; importing `server.js` did not start a listener.
+- Local server smoke: passed on port `3106`; `/` and `/api/state` returned HTTP 200, then the test server was stopped.
+- `pnpm build`: passed.
+- `pnpm test`: passed, 43/43 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+- Secret scan over the working diff: only env variable names in docs/source/tests were found; no real API keys, Supabase keys, admin PIN, session secret, or database URL were found.
+
+### Deployment QA status
+- Final QA against `https://polla.melazausa.com` must wait until this runtime fix is committed, pushed, and Vercel redeploys.
+- The previous live QA remains useful background, but the live deployment has not yet been verified with this runtime fix.
+
+### Remaining launch blockers
+- Commit and push this fix, then confirm Vercel deploys successfully.
+- Re-run final Vercel QA against `https://polla.melazausa.com` after redeploy.
+- Confirm `/api/live-readiness` returns `ready:true`, especially `ADMIN_PIN` and `SESSION_SECRET` checks.
+- Complete real visual QA at 375px, 768px, and 1280px in a browser.
+
+### Recommended next action
+- Commit/push the runtime fix and trigger a Vercel redeploy, then run the final production QA checklist.

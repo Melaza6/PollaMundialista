@@ -840,13 +840,14 @@ test("Vercel deployment config, env placeholders, and docs are launch-ready", ()
   const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
   assert.equal(vercelConfig.installCommand, "pnpm install --frozen-lockfile");
   assert.equal(vercelConfig.buildCommand, "pnpm build");
-  assert.equal(vercelConfig.functions["api/index.js"].runtime, "nodejs20.x");
+  assert.equal(Object.hasOwn(vercelConfig.functions["api/index.js"], "runtime"), false);
   assert.deepEqual(vercelConfig.rewrites[0], { source: "/(.*)", destination: "/api" });
 
   const adapter = readFileSync("api/index.js", "utf8");
   assert.match(adapter, /export \{ default \} from ["']\.\.\/server\.js["']/);
 
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.engines.node, "22.x");
   assert.equal(pkg.scripts["vercel:check"], "pnpm build && pnpm test");
 
   const deploymentDocs = readFileSync("DEPLOYMENT.md", "utf8");
