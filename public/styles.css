@@ -263,6 +263,11 @@ button,
   overflow-wrap: anywhere;
 }
 
+.match-predictions-button {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .match-result {
   color: var(--blue);
   font-size: 1.05rem;
@@ -592,6 +597,10 @@ textarea:focus-visible {
   box-shadow: inset 0 -4px 0 var(--yellow);
 }
 
+.tab-label-mobile {
+  display: none;
+}
+
 .hero-panel {
   border-top: 5px solid var(--yellow);
 }
@@ -677,6 +686,18 @@ textarea:focus-visible {
     min-width: 0;
     padding: 0.55rem 0.35rem;
     font-size: 0.78rem;
+  }
+
+  .user-bottom-nav .tab-label-full {
+    display: none;
+  }
+
+  .user-bottom-nav .tab-label-mobile {
+    display: inline;
+  }
+
+  .match-predictions-button {
+    width: 100%;
   }
 
   .admin-tabs {

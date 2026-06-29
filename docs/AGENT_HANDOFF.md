@@ -83,7 +83,7 @@ pnpm test
 Latest result:
 
 ```txt
-Not updated yet.
+2026-06-29 UI fix pass: pnpm build passed; pnpm test passed, 43/43; pnpm db:check passed, Supabase checked 11 tables.
 ```
 
 ---
@@ -188,6 +188,7 @@ pnpm test
 | Priority | Issue | Owner agent | Status | Notes |
 | -------- | ----- | ----------- | ------ | ----- |
 | P0       |       |             |        |       |
+| P0       | User-reported Vercel deployment blocker: `Function Runtimes must have a valid version` | `.agents/launch-deployment.md` | Open reminder | Do not address in the small UI fix pass; verify current Vercel config/deploy separately. |
 | P1       |       |             |        |       |
 | P2       |       |             |        |       |
 | P3       |       |             |        |       |
@@ -562,3 +563,48 @@ pnpm db:check
 - Fix production `ADMIN_PIN` env configuration in Vercel.
 - Patch `/api/state` to return only user-safe data unless an authenticated admin session is present.
 - Redeploy, then re-run this QA checklist including browser viewport checks.
+
+## 2026-06-29 Small UI fixes in correct app folder
+
+### Summary
+- Applied the requested three small UI fixes in `C:\Users\Owner\Documents\Polla mundial`.
+- Removed the unused landing-page Rules button.
+- Changed the match-card "Ver predicciones / View predictions" action so it opens the user Predictions tab for that specific match instead of only toggling inline details.
+- Shortened the regular-user mobile bottom-nav predictions label to `Pron.` in Spanish and `Preds` in English while preserving full labels on wider layouts.
+- Left business logic, auth, payments, payouts, exchange-rate, sports API, and Supabase logic unchanged.
+
+### Files changed
+- `public/app.js`
+- `public/styles.css`
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- Updated the existing UI/source marker test to look for the new `data-show-predictions` action hook and compact mobile tab label marker.
+
+### Commands run
+```bash
+node --check public/app.js
+pnpm build
+pnpm test
+pnpm db:check
+```
+
+### Results
+- `node --check public/app.js`: passed.
+- `pnpm build`: passed, with Node engine warning because local runtime is Node `v24.14.0` while the project wants `22.x`.
+- `pnpm test`: passed, 43/43 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+- Playwright 375px smoke passed against a local JSON-storage server with `data/db.json` backed up and restored afterward: no horizontal overflow, mobile nav showed `Pron.`, landing Rules button was absent, and the match-specific predictions action opened the related match in the Predictions tab.
+
+### Remaining risks
+- User reports Vercel still has deployment blocker `Function Runtimes must have a valid version`; this pass intentionally did not change deployment/runtime config.
+- Keep the production readiness/security blockers from the previous QA entry in view before launch.
+
+### Recommended next agent
+- `.agents/launch-deployment.md` for the unresolved Vercel runtime blocker.
+- `.agents/qa-test-engineer.md` for final production smoke after redeploy.
+
+### Git status
+- Changes remain uncommitted.
+- No commit was made during this pass.

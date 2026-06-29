@@ -441,7 +441,7 @@ function navItems(kind) {
   return [
     { id: "home", es: "Inicio", en: "Home" },
     { id: "matches", es: "Partidos", en: "Matches" },
-    { id: "predictions", es: "Predicciones", en: "Predictions" },
+    { id: "predictions", es: "Predicciones", en: "Predictions", mobileEs: "Pron.", mobileEn: "Preds" },
     { id: "standings", es: "Tabla", en: "Standings" },
     { id: "rules", es: "Reglas", en: "Rules" },
   ];
@@ -451,12 +451,16 @@ function itemLabel(item) {
   return lang === "en" ? item.en : item.es;
 }
 
+function mobileItemLabel(item) {
+  return lang === "en" ? item.mobileEn || item.en : item.mobileEs || item.es;
+}
+
 function renderTabs(kind, activeId) {
   const attr = kind === "admin" ? "data-admin-tab" : "data-user-tab";
   return `
     <nav class="app-tabs ${kind === "user" ? "user-bottom-nav" : "admin-tabs"}" aria-label="${kind === "admin" ? t("admin") : t("myAccount")}">
       ${navItems(kind)
-        .map((item) => `<button type="button" class="tab-button${activeId === item.id ? " active" : ""}" ${attr}="${item.id}">${itemLabel(item)}</button>`)
+        .map((item) => `<button type="button" class="tab-button${activeId === item.id ? " active" : ""}" ${attr}="${item.id}"><span class="tab-label-full">${itemLabel(item)}</span><span class="tab-label-mobile">${mobileItemLabel(item)}</span></button>`)
         .join("")}
     </nav>
   `;
@@ -547,7 +551,7 @@ function renderUserPredictions() {
     <section class="panel page-intro"><h2>${t("allPredictions")}</h2><p>${lang === "en" ? "Everyone can see predictions by match. You can edit only your own before lock." : "Todos pueden ver las predicciones por partido. Solo puedes editar la tuya antes del cierre."}</p></section>
     <section class="accordion-list">
       ${matches.length ? matches.map((match, index) => `
-        <details class="panel compact-details"${index === 0 ? " open" : ""}>
+        <details class="panel compact-details"${selectedMatchId === match.id || (!selectedMatchId && index === 0) ? " open" : ""}>
           <summary>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)} <span>${matchResultText(match) || fmtDate(match.kickoffAt)}</span></summary>
           ${renderPredictionTable(match)}
         </details>
@@ -644,7 +648,7 @@ function render() {
         <div><p class="eyebrow">Melaza USA - polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${t("tagline")}</p></div>
         <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>Espanol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select></div>
       </header>
-      <main class="shell landing-shell"><section class="panel landing-panel"><h2>${t("login")} / ${t("signup")}</h2><p>${t("tagline")}</p><a class="link-button ghost" href="#rules">${t("rulesPage")}</a></section>${renderLogin()}</main>
+      <main class="shell landing-shell"><section class="panel landing-panel"><h2>${t("login")} / ${t("signup")}</h2><p>${t("tagline")}</p></section>${renderLogin()}</main>
     `;
     bindEvents();
     return;
@@ -706,10 +710,7 @@ function renderMatchCard(match) {
       ${userPrediction ? `<strong>${t("myPredictions")}: ${userPrediction.homeScore}-${userPrediction.awayScore}</strong>` : ""}
       ${userPrediction ? `<p>${t("payment")}: ${paymentStatus(paymentForPrediction(userPrediction.id))}</p>` : ""}
       ${renderPredictionForm(match, userPrediction, info.locked)}
-      <details class="compact-details predictions-details">
-        <summary>${t("viewPredictions")}</summary>
-        ${renderPredictionTable(match)}
-      </details>
+      <button class="ghost small match-predictions-button" type="button" data-show-predictions="${match.id}">${t("viewPredictions")}</button>
     </article>
   `;
 }
@@ -1212,6 +1213,15 @@ function bindEvents() {
   document.querySelectorAll("[data-select-match]").forEach((node) => {
     node.addEventListener("click", () => {
       selectedMatchId = node.dataset.selectMatch;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-show-predictions]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectedMatchId = button.dataset.showPredictions;
+      activeUserTab = "predictions";
       render();
     });
   });

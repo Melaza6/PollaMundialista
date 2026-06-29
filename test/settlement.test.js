@@ -574,7 +574,7 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(appSource, /renderAdminTools/);
   assert.match(appSource, /querySelectorAll\("\[data-user-tab\]"\)/);
   assert.match(appSource, /querySelectorAll\("\[data-admin-tab\]"\)/);
-  assert.match(appSource, /predictions-details/);
+  assert.match(appSource, /data-show-predictions/);
   assert.match(appSource, /rules-group/);
   assert.doesNotMatch(appSource, /<select name="method">/);
   assert.match(appSource, /function safeJsonParse/);
@@ -590,6 +590,7 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(css, /--tap:\s*44px/);
   assert.match(css, /results-grid/);
   assert.match(css, /user-bottom-nav/);
+  assert.match(css, /tab-label-mobile/);
   assert.match(css, /tab-button\.active/);
   assert.match(css, /compact-details/);
 });
