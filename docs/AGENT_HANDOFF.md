@@ -83,7 +83,7 @@ pnpm test
 Latest result:
 
 ```txt
-2026-06-29 UI fix pass: pnpm build passed; pnpm test passed, 43/43; pnpm db:check passed, Supabase checked 11 tables.
+2026-06-29 Vercel production test-timeout fix: pnpm install --frozen-lockfile, pnpm build, pnpm test, VERCEL=1 NODE_ENV=production pnpm test, VERCEL=1 NODE_ENV=production ADMIN_PIN=test-admin-pin-not-2026 SESSION_SECRET=test-session-secret-long-enough-for-production pnpm test, and pnpm db:check all passed. Local runner warned that Node v24.14.0 does not match project engine 22.x.
 ```
 
 ---
