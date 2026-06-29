@@ -8,3 +8,5 @@ data/db.backup-*.json
 .env.local
 .vercel
 data/db.corrupt-*.json
+
+tmp/
