@@ -34,8 +34,19 @@ const users = [
   { id: "admin", role: "ADMIN", name: "Admin" },
 ];
 
-async function waitForHealth(port, attempts = 30) {
+function safeProcessLog(lines) {
+  return lines
+    .join("")
+    .replace(/(ADMIN_PIN|SESSION_SECRET|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|DATABASE_URL)=\S+/gi, "$1=[redacted]")
+    .slice(-2000)
+    .trim();
+}
+
+async function waitForHealth(port, attempts = 30, child = null, logs = []) {
   for (let index = 0; index < attempts; index += 1) {
+    if (child?.exitCode !== null) {
+      throw new Error(`Test server exited before health check. Exit code: ${child.exitCode}. Logs: ${safeProcessLog(logs) || "(none)"}`);
+    }
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/health`);
       if (response.ok) return;
@@ -44,7 +55,7 @@ async function waitForHealth(port, attempts = 30) {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error("Timed out waiting for test server");
+  throw new Error(`Timed out waiting for test server. Logs: ${safeProcessLog(logs) || "(none)"}`);
 }
 
 const finalMatch = {
@@ -678,21 +689,27 @@ test("Missing Supabase env vars are reported by storage without crashing startup
 
 test("/api/state returns JSON on storage error", async () => {
   const port = 4300 + Math.floor(Math.random() * 500);
+  const childLogs = [];
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
       PORT: String(port),
+      VERCEL: "",
+      ADMIN_PIN: "test-admin-pin-not-2026",
+      SESSION_SECRET: "test-session-secret-long-enough-for-production",
       DATA_STORAGE_DRIVER: "supabase",
       SUPABASE_URL: "",
       SUPABASE_ANON_KEY: "",
       SUPABASE_SERVICE_ROLE_KEY: "",
     },
-    stdio: "ignore",
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  child.stdout.on("data", (chunk) => childLogs.push(String(chunk)));
+  child.stderr.on("data", (chunk) => childLogs.push(String(chunk)));
 
   try {
-    await waitForHealth(port);
+    await waitForHealth(port, 30, child, childLogs);
     const response = await fetch(`http://127.0.0.1:${port}/api/state`);
     const text = await response.text();
     const parsed = safeJsonParse(text);
