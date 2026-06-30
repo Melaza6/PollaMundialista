@@ -489,6 +489,23 @@ function currentUserStanding() {
   return state.standings.find((row) => row.userId === user?.id || row.name === user?.name) || null;
 }
 
+function teamAbbr(team) {
+  return (
+    String(team || "TBD")
+      .replace(/[^A-Za-z0-9 ]/g, "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 3)
+      .toUpperCase() || "TBD"
+  );
+}
+
+function progressPercent(value, total) {
+  return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Math.max(Number(total || 0), 1)) * 100)));
+}
+
 function renderCompactMatch(match) {
   const info = lockInfo(match);
   const prediction = predictionFor(match.id);
@@ -506,21 +523,51 @@ function renderCompactMatch(match) {
   `;
 }
 
+function renderFeaturedMatch(match) {
+  if (!match) return `<div class="next-match-card empty-state">${t("noUpcomingMatches")}</div>`;
+  const info = lockInfo(match);
+  const prediction = predictionFor(match.id);
+  return `
+    <article class="next-match-card" data-select-match="${match.id}">
+      <div class="match-card-topline">
+        <span class="chip ${info.locked ? "danger" : "success"}">${info.locked ? t("predictionClosed") : t("predictionAvailable")}</span>
+        <span>${fmtDate(match.kickoffAt)}</span>
+      </div>
+      <div class="versus-board">
+        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(match.homeTeam)}</strong></div>
+        <em>VS</em>
+        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(match.awayTeam)}</strong></div>
+      </div>
+      <p>${escapeHtml(match.stage || match.group || match.venue || "")}</p>
+      <div class="button-row">
+        <button class="primary" data-user-tab="matches">${prediction ? t("editPrediction") : t("savePrediction")}</button>
+        <button class="ghost" data-show-predictions="${match.id}">${t("viewPredictions")}</button>
+      </div>
+    </article>
+  `;
+}
+
 function renderUserHome() {
   const user = currentUser();
   const payment = userPaymentSummary();
   const predicted = upcomingPredictionCount();
   const standing = currentUserStanding();
+  const progress = progressPercent(predicted, state.nextMatches.length || 4);
   return `
     <section class="hero-panel panel">
       <p class="eyebrow">${t("myAccount")}</p>
       <h2>${lang === "en" ? "Welcome" : "Bienvenido"}, ${escapeHtml(user.name)}</h2>
       <p>${lang === "en" ? "Predict the next matches, check payment status, and see the family table quickly." : "Predice los proximos partidos, revisa pagos y mira la tabla familiar rapido."}</p>
+      <div class="progress-block">
+        <span>${t("submitted")}: ${predicted} / ${state.nextMatches.length || 4}</span>
+        <div class="progress-track"><span style="width: ${progress}%"></span></div>
+      </div>
       <div class="button-row">
         <button class="primary" data-user-tab="matches">${lang === "en" ? "Make prediction" : "Hacer prediccion"}</button>
         <button class="ghost" data-user-tab="rules">${t("rulesPage")}</button>
       </div>
     </section>
+    ${renderFeaturedMatch(state.nextMatches[0])}
     <section class="dashboard-grid compact-dashboard">
       ${statCard(t("submitted"), `${predicted} / ${state.nextMatches.length || 4}`)}
       ${statCard(t("payment"), `${payment.verified} ${t("verifiedByAdmin")}`)}
@@ -539,8 +586,9 @@ function renderUserHome() {
 }
 
 function renderUserMatches() {
+  const openCount = state.nextMatches.filter((match) => !lockInfo(match).locked).length;
   return `
-    <section class="panel page-intro"><h2>${t("matches")}</h2><p>${lang === "en" ? "Pick exact scores for the next 4 matches." : "Elige marcadores exactos para los proximos 4 partidos."}</p></section>
+    <section class="panel page-intro"><p class="eyebrow">${lang === "en" ? "Match Day" : "Dia de partido"}</p><h2>${t("matches")}</h2><p>${lang === "en" ? "Pick exact scores for the next 4 matches." : "Elige marcadores exactos para los proximos 4 partidos."}</p><div class="filter-chips"><span class="chip">${state.nextMatches.length} ${t("matches")}</span><span class="chip success">${openCount} ${t("open")}</span><span class="chip danger">${state.nextMatches.length - openCount} ${t("locked")}</span></div></section>
     <section class="match-list">${state.nextMatches.length ? state.nextMatches.map(renderMatchCard).join("") : `<p class="hint empty-state">${t("noUpcomingMatches")}</p>`}</section>
   `;
 }
@@ -562,8 +610,8 @@ function renderUserPredictions() {
 
 function renderUserStandings() {
   return `
-    <section class="panel page-intro"><h2>${t("standings")}</h2><p>${lang === "en" ? "Ranking updates after official results sync." : "La tabla se actualiza despues de sincronizar resultados oficiales."}</p></section>
-    <section class="panel">${renderStandings()}</section>
+    <section class="panel page-intro"><p class="eyebrow">${lang === "en" ? "Leaderboard" : "Tabla general"}</p><h2>${t("standings")}</h2><p>${lang === "en" ? "Ranking updates after official results sync." : "La tabla se actualiza despues de sincronizar resultados oficiales."}</p></section>
+    <section>${renderStandings()}</section>
   `;
 }
 
@@ -648,7 +696,7 @@ function render() {
         <div><p class="eyebrow">Melaza USA - polla.melazausa.com</p><h1>${t("appTitle")}</h1><p>${t("tagline")}</p></div>
         <div class="header-actions"><select id="languageSelect" aria-label="${t("language")}"><option value="es"${lang === "es" ? " selected" : ""}>Espanol</option><option value="en"${lang === "en" ? " selected" : ""}>English</option></select></div>
       </header>
-      <main class="shell landing-shell"><section class="panel landing-panel"><h2>${t("login")} / ${t("signup")}</h2><p>${t("tagline")}</p></section>${renderLogin()}</main>
+      <main class="shell landing-shell"><section class="panel landing-panel"><p class="eyebrow">World Cup 2026</p><h2>${t("login")} / ${t("signup")}</h2><p>${t("tagline")}</p></section>${renderLogin()}</main>
     `;
     bindEvents();
     return;
@@ -698,11 +746,15 @@ function renderMatchCard(match) {
   const result = matchResultText(match);
   return `
     <article class="match-card${selected}" data-select-match="${match.id}">
-      <div class="match-top">
-        <span class="badge ${info.locked ? "danger" : "success"}">${info.locked ? t("predictionClosed") : t("predictionAvailable")}</span>
+      <div class="match-card-topline">
+        <span class="chip ${info.locked ? "danger" : "success"}">${info.locked ? t("predictionClosed") : t("predictionAvailable")}</span>
         <span>${fmtDate(match.kickoffAt)}</span>
       </div>
-      <h3>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</h3>
+      <div class="versus-board compact-versus">
+        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(match.homeTeam)}</strong></div>
+        <em>VS</em>
+        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(match.awayTeam)}</strong></div>
+      </div>
       ${result ? `<p class="match-result">${escapeHtml(result)}</p>` : ""}
       ${match.stage || match.group ? `<p>${escapeHtml(match.stage || match.group)}</p>` : ""}
       <p>${escapeHtml(match.venue)}</p>
@@ -775,14 +827,18 @@ function renderPredictionTable(match) {
 }
 function renderStandings() {
   if (!state.standings.length) return `<p class="hint">—</p>`;
+  const maxPoints = Math.max(...state.standings.map((row) => Number(row.points || 0)), 1);
   return `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>${t("participants")}</th><th>${t("points")}</th><th>${t("submitted")}</th><th>${t("winners")}</th></tr></thead>
-        <tbody>${state.standings
-          .map((row) => `<tr><td>${row.rank}</td><td>${escapeHtml(row.name)}</td><td>${row.points}</td><td>${row.predictionsSubmitted}</td><td>${row.correctPredictions}</td></tr>`)
-          .join("")}</tbody>
-      </table>
+    <div class="leaderboard-list">
+      ${state.standings
+        .map(
+          (row) => `<article class="leader-card">
+            <strong class="rank-badge">#${row.rank}</strong>
+            <div class="leader-main"><h3>${escapeHtml(row.name)}</h3><span>${row.predictionsSubmitted} ${t("submitted")} - ${row.correctPredictions} ${t("winners")}</span><div class="progress-track"><span style="width: ${progressPercent(row.points, maxPoints)}%"></span></div></div>
+            <strong class="points-badge">${row.points} pts</strong>
+          </article>`,
+        )
+        .join("")}
     </div>
   `;
 }
