@@ -394,6 +394,67 @@ pnpm db:check
 - Changes remain uncommitted.
 - No commit was made during this pass.
 
+## 2026-06-29 Colombian sleek restyle pass
+
+### Summary
+- Adapted the uploaded sleek.design export (`home.html`, `matches.html`, `leaderboard.html`) as visual inspiration only; no exported code, Tailwind CDN, Iconify CDN, external profile images, or new runtime dependencies were copied in.
+- Applied a premium dark sports direction while keeping Colombian flag colors visible: yellow `#FCD116`, blue `#003893`, red `#CE1126`, and dark navy/black surfaces.
+- Kept scope to UI rendering and CSS. No auth, payment, payout, exchange-rate, sports API, scoring, Supabase, or business-rule logic was changed.
+- Used the requested agent guidance: UI/UX, mobile responsive, bilingual copy, product manager, and QA test engineer.
+
+### UI changes completed
+- Landing/login now uses a darker Colombian sports theme, stronger first-viewport card, compact chips, and the existing name + phone forms only.
+- User home now emphasizes next match, team abbreviations, prediction availability, and prediction-progress bar.
+- Match cards now use stronger versus boards, kickoff/status chips, lock messaging, prediction forms, and the existing related-match predictions button behavior.
+- Predictions view keeps the recently fixed match-specific open behavior.
+- Standings now render as leaderboard cards with rank, participant, points, submitted/correct counts, and a progress bar.
+- Mobile bottom nav keeps compact labels with no horizontal overflow; Spanish shows `Pron.` and English is still configured as `Preds`.
+- Admin pages remain functional with the darker card/table treatment and reachable tools tab.
+
+### Files changed
+- `public/app.js`
+- `public/styles.css`
+- `docs/AGENT_HANDOFF.md`
+
+### Verification results
+```bash
+node --check public/app.js
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+pnpm db:check
+```
+- `node --check public/app.js`: passed.
+- `pnpm install --frozen-lockfile`: passed, already up to date.
+- `pnpm build`: passed. Local warning remains that Node is `v24.14.0` while project engines want `22.x`.
+- `pnpm test`: initial sandbox run hit `spawn EPERM` on the child-server storage-error test; elevated rerun passed 43/43.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+
+### Playwright visual QA
+- Ran local Playwright smoke against a JSON-storage server with `data/db.json` backed up and restored afterward.
+- Viewports checked: 375x812, 768x1024, 1280x900.
+- Checks passed: no horizontal overflow, no email input, no Google/Gmail auth text, no "My Bets" wording, compact mobile nav, related-match predictions open correctly, regular users do not get admin tab controls, and admin Tools tab is reachable.
+- Screenshots saved under `tmp/visual-qa/`:
+  - `sleek-375.png`
+  - `sleek-768.png`
+  - `sleek-1280.png`
+  - `sleek-375-user-predictions.png`
+  - `sleek-1280-admin-tools.png`
+
+### Remaining blockers and risks
+- Vercel production still needs the unresolved runtime/deployment blocker handled separately: `Function Runtimes must have a valid version`. This pass intentionally did not change Vercel/runtime config.
+- Keep the previous launch/security readiness concerns in view before production launch, especially admin-only diagnostics/state scoping and final production QA after redeploy.
+- Local verification used Node `v24.14.0`; production/project target remains Node `22.x`.
+
+### Recommended next agent
+- `.agents/launch-deployment.md` for the Vercel runtime blocker.
+- `.agents/security-auth-review.md` for production state/diagnostic scoping.
+- `.agents/qa-test-engineer.md` for final live QA after redeploy.
+
+### Git status
+- Restyle changes remain uncommitted.
+- No commit was made during this pass.
+
 ## 2026-06-25 Final Vercel preview QA
 
 ### Summary
