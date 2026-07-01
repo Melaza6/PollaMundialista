@@ -281,6 +281,8 @@ For professional UI/UX review tasks, also follow:
 
 - `.agents/code-comments-documentation.md` for useful code comments, JSDoc, developer documentation, and explaining complex business/security/financial logic without clutter.
 
+- `.agents/agent-supervisor.md` for selecting the right specialist agents, enforcing task scope, coordinating verification, and keeping `docs/AGENT_HANDOFF.md` updated.
+
 ## UX rules
 
 The app should feel fast and simple, not like a long admin database.
