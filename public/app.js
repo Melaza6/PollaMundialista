@@ -827,7 +827,7 @@ function renderPredictionForm(match, prediction, locked) {
   const usdBonus = Math.max(usdRate - 2000, 0);
   return `
     <form class="prediction-form" data-predict-match="${match.id}">
-      <label>${t("homeScore")}<input name="homeScore" type="number" min="0" inputmode="numeric" value="${prediction?.homeScore ?? 1}" aria-label="${t("homeScore")}" /></label>
+      <label>${t("homeScore")}<input name="homeScore" type="number" min="0" inputmode="numeric" value="${prediction?.homeScore ?? 0}" aria-label="${t("homeScore")}" /></label>
       <span>-</span>
       <label>${t("awayScore")}<input name="awayScore" type="number" min="0" inputmode="numeric" value="${prediction?.awayScore ?? 0}" aria-label="${t("awayScore")}" /></label>
       <label>${t("entryCurrency")}<select name="currency">

@@ -433,6 +433,37 @@ pnpm db:check
 - Do not mix USD exchange bonus into match pots or refunds in future settlement changes.
 - No commit was made during this pass.
 
+## 2026-07-01 Default prediction score input update
+
+### Summary
+- Branch: `ui/default-prediction-score-zero-zero`.
+- Changed the new user prediction form default from `1-0` to `0-0`.
+- Existing saved predictions still populate from their saved `homeScore` and `awayScore`.
+- Admin correction/result forms were not changed.
+- No scoring, match pot, USD bonus, auth, payment, payout, sports API, or storage logic was changed.
+
+### Files changed
+- `public/app.js`
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- Updated the UI/source marker test to assert:
+  - new prediction home score fallback is `0`
+  - new prediction away score fallback is `0`
+  - old `prediction?.homeScore ?? 1` default no longer exists
+
+### Verification
+- `node --check public/app.js`: passed.
+- `pnpm install --frozen-lockfile`: first sandbox run hit `EPERM` creating a temp file; escalated rerun passed and lockfile was already up to date.
+- `pnpm build`: passed, 51/51 tests inside build.
+- `pnpm test`: passed, 51/51 tests.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed, 51/51 tests.
+- Local runner warning remains: Node is `v24.14.0`; project engine wants Node `22.x`.
+
+### Remaining risks
+- None expected; this is a narrow UI default-value change.
+
 ## 2026-07-01 Exact-score match-pot scoring change
 
 ### Summary

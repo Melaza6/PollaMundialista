@@ -723,6 +723,9 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.doesNotMatch(appSource, /Google|Gmail|continueGoogle|googleDemoBtn|preferredCurrency|profileForm|Stripe|Wompi|Mercado Pago|PayU/i);
   assert.doesNotMatch(appSource, /function renderInlinePredictionEditor/);
   assert.match(appSource, /manualPaymentNotice/);
+  assert.match(appSource, /value="\$\{prediction\?\.homeScore \?\? 0\}"/);
+  assert.match(appSource, /value="\$\{prediction\?\.awayScore \?\? 0\}"/);
+  assert.doesNotMatch(appSource, /prediction\?\.homeScore \?\? 1/);
   assert.match(appSource, /displayMatchName/);
   assert.match(appSource, /teamDisplayName/);
   assert.match(appSource, /function renderSettlementSummary/);
