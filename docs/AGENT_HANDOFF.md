@@ -394,6 +394,45 @@ pnpm db:check
 - Changes remain uncommitted.
 - No commit was made during this pass.
 
+## 2026-07-01 USD bonus final-winner rule and Spanish team-name display
+
+### Summary
+- Continued work on `logic/usd-bonus-spanish-team-names`.
+- Clarified that the USD exchange-rate bonus is separate from all match pots and match refunds.
+- Tournament bonus winner now means the user(s) with the most exact-score points at the end of the tournament.
+- If tied, tournament winners split the USD exchange-rate bonus in whole COP pesos with leftover pesos assigned deterministically by `userId`.
+- Match winners receive only the match base pot. No-exact-winner refunds include only the match base contribution.
+- Added centralized team-name display helpers for Spanish/English rendering without mutating stored/provider team names.
+
+### Files changed
+- `lib/rules.js`
+- `lib/teamNames.js`
+- `public/teamNames.js`
+- `public/app.js`
+- `server.js`
+- `test/settlement.test.js`
+- `package.json`
+- `WORLD_CUP_FAMILY_POOL_APP.md`
+- `docs/AGENT_HANDOFF.md`
+
+### UI and message behavior
+- Spanish UI displays translated team names for match cards, prediction lists, admin filters/tables, payment rows, result cards, match-day summaries, and API sample lists.
+- English UI keeps provider/original team names.
+- Abbreviations still come from the original provider names.
+- Spanish WhatsApp/result messages use translated team names through the display helper.
+
+### Tests added/updated
+- Final tournament winner receives the USD exchange bonus by exact-score points.
+- Tied tournament winners split the USD exchange bonus deterministically and preserve leftover pesos.
+- No-exact-winner refunds exclude USD exchange bonus.
+- Spanish team names translate only at display/message level.
+- English display keeps provider names and helper calls do not mutate match objects.
+
+### Remaining reminders
+- Payments and prize payouts remain manual only.
+- Do not mix USD exchange bonus into match pots or refunds in future settlement changes.
+- No commit was made during this pass.
+
 ## 2026-07-01 Exact-score match-pot scoring change
 
 ### Summary

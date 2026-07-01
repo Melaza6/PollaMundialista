@@ -24,6 +24,7 @@ import {
 import { findIdentityMatches, normalizeName, normalizePhone, validateRegistrationInput } from "../lib/auth.js";
 import { loadEnvFile, parseEnvFile } from "../lib/env.js";
 import { safeJsonParse } from "../lib/safeJson.js";
+import { displayMatchName, displayTeamName } from "../lib/teamNames.js";
 import { getUsdCopRate, isValidUsdCopRate, parseExchangeRateValue } from "../server/exchangeRateProvider.js";
 import { createSportsProvider } from "../server/sportsProvider.js";
 import { createStorage, resolveStorageDriver, validateStorageStartup } from "../server/storage/index.js";
@@ -149,6 +150,7 @@ test("No exact-score winner creates manual refund records for verified match par
   const settlement = calculateMatchSettlement(finalMatch, predictions, payments);
 
   assert.equal(settlement.refundStatus, "REFUND_DUE");
+  assert.equal(settlement.usdExcessCop, 2000);
   assert.deepEqual(settlement.winners, []);
   assert.deepEqual(
     settlement.refunds.map((refund) => ({ userId: refund.userId, refundCop: refund.refundCop, reason: refund.reason })),
@@ -178,7 +180,7 @@ test("Unpaid and rejected predictions do not count toward match pot winners or r
   assert.equal(settlement.refunds[0].refundCop, 2000);
 });
 
-test("World Cup bonus goes to most paid predictions and splits ties", () => {
+test("USD exchange bonus goes only to final tournament winner by exact-score points", () => {
   const matches = [
     finalMatch,
     { ...finalMatch, id: "m2", result: { status: "FINAL", homeScore: 1, awayScore: 1 } },
@@ -187,7 +189,7 @@ test("World Cup bonus goes to most paid predictions and splits ties", () => {
     { id: "p1", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1 },
     { id: "p2", matchId: "m2", userId: "u1", homeScore: 1, awayScore: 1 },
     { id: "p3", matchId: "m1", userId: "u2", homeScore: 2, awayScore: 1 },
-    { id: "p4", matchId: "m2", userId: "u2", homeScore: 1, awayScore: 1 },
+    { id: "p4", matchId: "m2", userId: "u2", homeScore: 0, awayScore: 0 },
   ];
   const payments = predictions.map((prediction) => ({
     predictionId: prediction.id,
@@ -201,9 +203,32 @@ test("World Cup bonus goes to most paid predictions and splits ties", () => {
   assert.equal(bonus.bonusPotCop, 4000);
   assert.deepEqual(
     bonus.winners.map((winner) => ({ name: winner.name, correct: winner.correctPredictions, payout: winner.bonusPayoutCop })),
+    [{ name: "Ana", correct: 2, payout: 4000 }],
+  );
+});
+
+test("Tied tournament winners split USD exchange bonus deterministically and preserve leftover pesos", () => {
+  const matches = [
+    finalMatch,
+    { ...finalMatch, id: "m2", result: { status: "FINAL", homeScore: 1, awayScore: 1 } },
+  ];
+  const predictions = [
+    { id: "p1", matchId: "m1", userId: "u2", homeScore: 2, awayScore: 1 },
+    { id: "p2", matchId: "m2", userId: "u1", homeScore: 1, awayScore: 1 },
+  ];
+  const payments = [
+    { predictionId: "p1", matchId: "m1", verificationStatus: "VERIFIED", ...calculatePaymentMoney("USD", 4001) },
+    { predictionId: "p2", matchId: "m2", verificationStatus: "VERIFIED", ...calculatePaymentMoney("USD", 4000) },
+  ];
+
+  const bonus = calculateTournamentBonus(users, matches, predictions, payments);
+
+  assert.equal(bonus.bonusPotCop, 4001);
+  assert.deepEqual(
+    bonus.winners.map((winner) => ({ userId: winner.userId, payout: winner.bonusPayoutCop })),
     [
-      { name: "Ana", correct: 2, payout: 2000 },
-      { name: "Carlos", correct: 2, payout: 2000 },
+      { userId: "u1", payout: 2001 },
+      { userId: "u2", payout: 2000 },
     ],
   );
 });
@@ -273,6 +298,44 @@ test("Post-game winner message generation", () => {
   assert.match(message, /Resultado final: Colombia 2 - 1 Brasil/);
   assert.match(message, /Ana/);
   assert.match(message, /1 punto/);
+});
+
+test("Team-name display helper translates Spanish UI only without mutating provider names", () => {
+  const match = { homeTeam: "United States", awayTeam: "Japan" };
+
+  assert.equal(displayTeamName("United States", "es"), "Estados Unidos");
+  assert.equal(displayTeamName("Japan", "es"), "Japon");
+  assert.equal(displayMatchName(match, "es"), "Estados Unidos vs Japon");
+  assert.equal(displayMatchName(match, "en"), "United States vs Japan");
+  assert.deepEqual(match, { homeTeam: "United States", awayTeam: "Japan" });
+});
+
+test("Spanish result messages use translated team names and English messages keep provider names", () => {
+  const match = {
+    ...finalMatch,
+    homeTeam: "United States",
+    awayTeam: "Japan",
+  };
+
+  const spanish = generateWinnerMessage({
+    language: "es",
+    match,
+    settlement: { winners: [{ userId: "u1" }] },
+    users,
+    standings: [{ rank: 1, name: "Ana", points: 1 }],
+  });
+  const english = generateWinnerMessage({
+    language: "en",
+    match,
+    settlement: { winners: [{ userId: "u1" }] },
+    users,
+    standings: [{ rank: 1, name: "Ana", points: 1 }],
+  });
+
+  assert.match(spanish, /Estados Unidos 2 - 1 Japon/);
+  assert.match(english, /United States 2 - 1 Japan/);
+  assert.equal(match.homeTeam, "United States");
+  assert.equal(match.awayTeam, "Japan");
 });
 
 test("API result synchronization uses API-provided scores", () => {
@@ -653,12 +716,15 @@ test("Payout ledger creates manual refund records when no exact-score winner exi
 
 test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () => {
   const appSource = readFileSync("public/app.js", "utf8");
+  const teamNamesSource = readFileSync("public/teamNames.js", "utf8");
   const css = readFileSync("public/styles.css", "utf8");
   assert.match(appSource, /landing-shell/);
   assert.match(appSource, /if \(!user\)/);
   assert.doesNotMatch(appSource, /Google|Gmail|continueGoogle|googleDemoBtn|preferredCurrency|profileForm|Stripe|Wompi|Mercado Pago|PayU/i);
   assert.doesNotMatch(appSource, /function renderInlinePredictionEditor/);
   assert.match(appSource, /manualPaymentNotice/);
+  assert.match(appSource, /displayMatchName/);
+  assert.match(appSource, /teamDisplayName/);
   assert.match(appSource, /function renderSettlementSummary/);
   assert.match(appSource, /renderSettlementSummary\(match\.id\)/);
   assert.match(appSource, /exactScorePoints/);
@@ -703,6 +769,9 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.match(css, /tab-label-mobile/);
   assert.match(css, /tab-button\.active/);
   assert.match(css, /compact-details/);
+  assert.match(teamNamesSource, /United States/);
+  assert.match(teamNamesSource, /Estados Unidos/);
+  assert.match(teamNamesSource, /displayTeamName/);
 });
 
 test("Env loader parses .env values without overriding existing env", () => {

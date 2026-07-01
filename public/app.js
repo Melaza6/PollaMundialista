@@ -1,3 +1,5 @@
+import { displayMatchName, displayTeamName } from "./teamNames.js";
+
 const storage = {
   sessionToken: "polla-mundialista-2026-session-token",
   role: "polla-mundialista-2026-role",
@@ -82,7 +84,7 @@ const i18n = {
     noExactWinnerRefund: "Sin marcador exacto: reembolso manual a participantes verificados.",
     exactScorePoints: "Marcador exacto: 1 punto. Resultado acertado sin marcador exacto: 0 puntos.",
     usdExcess: "Exceso por tasa de cambio USD",
-    mostCorrectPrize: "Premio por más predicciones acertadas",
+    mostCorrectPrize: "Bono USD al ganador final",
     totalCollected: "Total recaudado",
     totalPending: "Total pendiente",
     totalVerified: "Total verificado",
@@ -121,7 +123,7 @@ const i18n = {
     inviteMessage: "Mensaje de invitación",
     winnerMessage: "Mensaje de ganador",
     rules: "Reglas",
-    rulesBody: "Cada entrada verificada aporta 2,000 COP al pozo base. Si alguien paga 1 USD y se reciben más de 2,000 COP, el exceso va a un premio separado para quien tenga más marcadores exactos al final del Mundial.",
+    rulesBody: "Cada entrada verificada aporta 2,000 COP al pozo del partido. El exceso de USD queda separado y va solo al ganador final del torneo: quien tenga mas puntos por marcadores exactos.",
     rulesPage: "Reglas completas",
     matchDay: "Dia de partido",
     auditLog: "Auditoria",
@@ -231,7 +233,7 @@ const i18n = {
     noExactWinnerRefund: "No exact score: manual refund for verified participants.",
     exactScorePoints: "Exact score: 1 point. Correct winner without exact score: 0 points.",
     usdExcess: "USD exchange rate excess",
-    mostCorrectPrize: "Most correct predictions prize",
+    mostCorrectPrize: "Final winner USD bonus",
     totalCollected: "Total collected",
     totalPending: "Total pending",
     totalVerified: "Total verified",
@@ -270,7 +272,7 @@ const i18n = {
     inviteMessage: "Invite message",
     winnerMessage: "Winner message",
     rules: "Rules",
-    rulesBody: "Each verified entry contributes 2,000 COP to the base pot. If someone pays 1 USD and more than 2,000 COP is received, the excess goes to a separate end-of-World-Cup prize for the person with the most exact scores.",
+    rulesBody: "Each verified entry contributes 2,000 COP to that match pot. USD excess stays separate and goes only to the final tournament winner: the person with the most exact-score points.",
     rulesPage: "Full rules",
     matchDay: "Match day",
     auditLog: "Audit log",
@@ -512,6 +514,18 @@ function teamAbbr(team) {
   );
 }
 
+function teamDisplayName(team) {
+  return displayTeamName(team, lang);
+}
+
+function matchDisplayName(match) {
+  return displayMatchName(match, lang);
+}
+
+function matchById(matchId) {
+  return state?.matches?.find((match) => match.id === matchId);
+}
+
 function progressPercent(value, total) {
   return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Math.max(Number(total || 0), 1)) * 100)));
 }
@@ -523,7 +537,7 @@ function renderCompactMatch(match) {
   return `
     <article class="summary-card" data-select-match="${match.id}">
       <div>
-        <strong>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</strong>
+        <strong>${escapeHtml(matchDisplayName(match))}</strong>
         <p>${fmtDate(match.kickoffAt)}</p>
       </div>
       <span class="badge ${info.locked ? "danger" : "success"}">${matchResultText(match) || (info.locked ? t("locked") : t("open"))}</span>
@@ -544,9 +558,9 @@ function renderFeaturedMatch(match) {
         <span>${fmtDate(match.kickoffAt)}</span>
       </div>
       <div class="versus-board">
-        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(match.homeTeam)}</strong></div>
+        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(teamDisplayName(match.homeTeam))}</strong></div>
         <em>VS</em>
-        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(match.awayTeam)}</strong></div>
+        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(teamDisplayName(match.awayTeam))}</strong></div>
       </div>
       <p>${escapeHtml(match.stage || match.group || match.venue || "")}</p>
       <div class="button-row">
@@ -610,7 +624,7 @@ function renderUserPredictions() {
     <section class="accordion-list">
       ${matches.length ? matches.map((match, index) => `
         <details class="panel compact-details"${selectedMatchId === match.id || (!selectedMatchId && index === 0) ? " open" : ""}>
-          <summary>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)} <span>${matchResultText(match) || fmtDate(match.kickoffAt)}</span></summary>
+          <summary>${escapeHtml(matchDisplayName(match))} <span>${matchResultText(match) || fmtDate(match.kickoffAt)}</span></summary>
           ${renderPredictionTable(match)}
         </details>
       `).join("") : `<p class="hint empty-state">${t("noPredictions")}</p>`}
@@ -761,9 +775,9 @@ function renderMatchCard(match) {
         <span>${fmtDate(match.kickoffAt)}</span>
       </div>
       <div class="versus-board compact-versus">
-        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(match.homeTeam)}</strong></div>
+        <div><span>${teamAbbr(match.homeTeam)}</span><strong>${escapeHtml(teamDisplayName(match.homeTeam))}</strong></div>
         <em>VS</em>
-        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(match.awayTeam)}</strong></div>
+        <div><span>${teamAbbr(match.awayTeam)}</span><strong>${escapeHtml(teamDisplayName(match.awayTeam))}</strong></div>
       </div>
       ${result ? `<p class="match-result">${escapeHtml(result)}</p>` : ""}
       ${match.stage || match.group ? `<p>${escapeHtml(match.stage || match.group)}</p>` : ""}
@@ -892,13 +906,13 @@ function renderRulesPage() {
       ? [
           ["Entry", ["Family exact-score pool for one match at a time.", "Sign up and log in with name and phone only.", "Payments are manual: 2,000 COP or 1 USD per entry."]],
           ["Predictions", ["Users can edit only their own prediction until 15 minutes before kickoff.", "Everyone can see submitted predictions.", "Exact score earns 1 point. Correct winner without the exact score earns 0 points."]],
-          ["Payments and Prizes", ["Every verified entry contributes exactly 2,000 COP to that match pot.", "Exact-score winner(s) split the match pot. If nobody has the exact score, verified participants get manual refund ledger records.", "USD excess over 2,000 COP stays in the separate World Cup bonus pot.", "Prize payouts and refunds are manual and confirmed by the admin."]],
+          ["Payments and Prizes", ["Every verified entry contributes exactly 2,000 COP to that match pot.", "Exact-score winner(s) split only the match pot. If nobody has the exact score, verified participants get manual refund ledger records for the match base contribution only.", "USD excess over 2,000 COP stays separate from match pots and refunds.", "The USD exchange-rate bonus goes only to the final tournament winner, based on most exact-score points. Ties split whole COP pesos deterministically.", "Prize payouts and refunds are manual and confirmed by the admin."]],
           ["Results", ["Official API results are the settlement source.", "If sync is delayed, results show pending sync.", "For help, contact the family admin."]],
         ]
       : [
           ["Participacion", ["Polla familiar de marcador exacto, un partido a la vez.", "Registrate e inicia sesion solo con nombre y telefono.", "Los pagos son manuales: 2,000 COP o 1 USD por entrada."]],
           ["Predicciones", ["Puedes editar solo tu prediccion hasta 15 minutos antes del inicio.", "Todos pueden ver las predicciones enviadas.", "Marcador exacto da 1 punto. Acertar solo el ganador sin marcador exacto da 0 puntos."]],
-          ["Pagos y premios", ["Cada entrada verificada aporta exactamente 2,000 COP al pozo de ese partido.", "Quien(es) acierten el marcador exacto dividen el pozo del partido. Si nadie acierta, quedan reembolsos manuales para los participantes verificados.", "El exceso de USD sobre 2,000 COP va al bono separado del Mundial.", "Los pagos de premios y reembolsos son manuales y confirmados por el administrador."]],
+          ["Pagos y premios", ["Cada entrada verificada aporta exactamente 2,000 COP al pozo de ese partido.", "Quien(es) acierten el marcador exacto dividen solo el pozo del partido. Si nadie acierta, quedan reembolsos manuales solo por el aporte base del partido.", "El exceso de USD sobre 2,000 COP queda separado de pozos y reembolsos de partidos.", "El bono por tasa de cambio USD va solo al ganador final del torneo, segun mas puntos por marcadores exactos. Los empates se dividen en pesos enteros de forma deterministica.", "Los pagos de premios y reembolsos son manuales y confirmados por el administrador."]],
           ["Resultados", ["Los resultados oficiales de la API son la fuente para liquidar.", "Si se demora la sincronizacion, queda pendiente.", "Si necesitas ayuda, contacta al administrador familiar."]],
         ];
   return groups
@@ -950,7 +964,7 @@ function renderMatchDay() {
       <div>
         <h3>${t("missingPredictions")}</h3>
         ${missing
-          .map((item) => `<p><strong>${escapeHtml(item.matchName)}</strong>: ${item.users.map((user) => escapeHtml(user.name)).join(", ") || "-"}</p>`)
+          .map((item) => `<p><strong>${escapeHtml(matchDisplayName(matchById(item.matchId)) || item.matchName)}</strong>: ${item.users.map((user) => escapeHtml(user.name)).join(", ") || "-"}</p>`)
           .join("") || `<p class="hint">-</p>`}
       </div>
       <div>
@@ -1048,7 +1062,7 @@ function renderAdminPredictions() {
   const resultStatuses = [...new Set(allRows.map((row) => row.resultStatus).filter(Boolean))];
   return `
     <form id="adminPredictionFilters" class="filter-grid">
-      <label>${t("matches")}<select name="matchId"><option value="">${t("allMatches")}</option>${state.matches.map((match) => `<option value="${match.id}"${adminPredictionFilters.matchId === match.id ? " selected" : ""}>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</option>`).join("")}</select></label>
+      <label>${t("matches")}<select name="matchId"><option value="">${t("allMatches")}</option>${state.matches.map((match) => `<option value="${match.id}"${adminPredictionFilters.matchId === match.id ? " selected" : ""}>${escapeHtml(matchDisplayName(match))}</option>`).join("")}</select></label>
       <label>${t("users")}<select name="userId"><option value="">${t("allUsers")}</option>${state.users.filter((user) => user.role === "USER").map((user) => `<option value="${user.id}"${adminPredictionFilters.userId === user.id ? " selected" : ""}>${escapeHtml(user.name)}</option>`).join("")}</select></label>
       <label>${t("payment")}<select name="paymentStatus"><option value="">${t("allPayments")}</option>${paymentStatuses.map((status) => `<option value="${status}"${adminPredictionFilters.paymentStatus === status ? " selected" : ""}>${escapeHtml(status)}</option>`).join("")}</select></label>
       <label>${t("status")}<select name="lockStatus"><option value="">${t("allLocks")}</option><option value="open"${adminPredictionFilters.lockStatus === "open" ? " selected" : ""}>${t("open")}</option><option value="locked"${adminPredictionFilters.lockStatus === "locked" ? " selected" : ""}>${t("locked")}</option></select></label>
@@ -1064,7 +1078,7 @@ function renderAdminPredictions() {
               <td data-label="${t("phone")}">${escapeHtml(row.userPhone)}</td>
               <td data-label="${t("currency")}">${escapeHtml(row.currency)}</td>
               <td data-label="${t("payment")}">${escapeHtml(row.paymentStatus)}</td>
-              <td data-label="${t("matches")}">${escapeHtml(row.matchName)}</td>
+              <td data-label="${t("matches")}">${escapeHtml(matchDisplayName(matchById(row.matchId)) || row.matchName)}</td>
               <td data-label="${t("score")}">${escapeHtml(row.predictedScore)}</td>
               <td data-label="${t("predictionTime")}">${fmtDate(row.updatedAt)}</td>
               <td data-label="${t("status")}">${row.matchLocked ? t("locked") : t("open")}</td>
@@ -1114,7 +1128,7 @@ function renderApiVerification() {
           ? `<div class="sample-list">${samples
               .map(
                 (match) =>
-                  `<span>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)} · ${fmtDate(match.kickoffAt)}${match.stage ? ` · ${escapeHtml(match.stage)}` : ""}</span>`,
+                  `<span>${escapeHtml(matchDisplayName(match))} · ${fmtDate(match.kickoffAt)}${match.stage ? ` · ${escapeHtml(match.stage)}` : ""}</span>`,
               )
               .join("")}</div>`
           : `<p class="hint">${t("pendingSync")}</p>`
@@ -1139,7 +1153,7 @@ function renderAdminPayments() {
             const action = payment.verificationStatus === "VERIFIED" ? t("markPending") : t("markVerified");
             return `<tr>
               <td data-label="${t("participants")}">${escapeHtml(prediction?.userName || "")}</td>
-              <td data-label="${t("matches")}">${escapeHtml(prediction?.match?.homeTeam || "")} vs ${escapeHtml(prediction?.match?.awayTeam || "")}</td>
+              <td data-label="${t("matches")}">${escapeHtml(prediction?.match ? matchDisplayName(prediction.match) : "")}</td>
               <td data-label="${t("currency")}">${payment.currency} · ${money(payment.actualCopReceived || payment.copEquivalent)}</td>
               <td data-label="${t("basePot")}">${money(payment.basePotContributionCop || payment.baseContributionCop || 0)}</td>
               <td data-label="${t("exchangeBonus")}">${money(payment.exchangeExcess || payment.excessContributionCop || 0)}</td>
@@ -1211,7 +1225,7 @@ function renderAdminMatch(match) {
   const result = matchResultText(match) || escapeHtml(match.resultSync?.message || t("pendingSync"));
   return `
     <div class="admin-match">
-      <strong>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</strong>
+      <strong>${escapeHtml(matchDisplayName(match))}</strong>
       <span class="match-result">${result}</span>
       ${renderSettlementSummary(match.id)}
       <button class="ghost small" data-sync-result="${match.id}">${t("syncResult")}</button>

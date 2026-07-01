@@ -30,6 +30,7 @@ import {
 } from "./lib/auth.js";
 import { loadEnvFile } from "./lib/env.js";
 import { safeJsonParse } from "./lib/safeJson.js";
+import { displayMatchName } from "./lib/teamNames.js";
 import { createSportsProvider } from "./server/sportsProvider.js";
 import { getUsdCopRate, isValidUsdCopRate } from "./server/exchangeRateProvider.js";
 import { createStorage } from "./server/storage/index.js";
@@ -654,6 +655,7 @@ function buildWhatsappMessage(db, type, language, matchId) {
   const standings = calculateStandings(db.users, db.matches, db.predictions, db.payments);
   const settlement = calculateMatchSettlement(match, db.predictions, db.payments);
   const joinUrl = `${publicBaseUrl}/?match=${match.id}`;
+  const matchName = displayMatchName(match, language);
 
   const pendingUsers = db.users
     .filter((user) => user.role === "USER")
@@ -683,14 +685,14 @@ function buildWhatsappMessage(db, type, language, matchId) {
           ? "Remember to submit your exact score."
           : "Recuerda enviar tu marcador exacto.";
     return language === "en"
-      ? `${lockLine}\nMatch: ${match.homeTeam} vs ${match.awayTeam}\nMissing predictions: ${missingNames.join(", ") || "none"}\nJoin: ${joinUrl}`
-      : `${lockLine}\nPartido: ${match.homeTeam} vs ${match.awayTeam}\nFaltan predicciones: ${missingNames.join(", ") || "ninguna"}\nEntra: ${joinUrl}`;
+      ? `${lockLine}\nMatch: ${matchName}\nMissing predictions: ${missingNames.join(", ") || "none"}\nJoin: ${joinUrl}`
+      : `${lockLine}\nPartido: ${matchName}\nFaltan predicciones: ${missingNames.join(", ") || "ninguna"}\nEntra: ${joinUrl}`;
   }
 
   if (type === "match_closed") {
     return language === "en"
-      ? `Predictions closed for ${match.homeTeam} vs ${match.awayTeam}. Good luck!`
-      : `Predicciones cerradas para ${match.homeTeam} vs ${match.awayTeam}. Buena suerte!`;
+      ? `Predictions closed for ${matchName}. Good luck!`
+      : `Predicciones cerradas para ${matchName}. Buena suerte!`;
   }
 
   if (type === "standings") {
@@ -713,7 +715,7 @@ function buildWhatsappMessage(db, type, language, matchId) {
     return [
       "Polla Mundialista 2026",
       "",
-      `Match: ${match.homeTeam} vs ${match.awayTeam}`,
+      `Match: ${matchName}`,
       "Entry: 2,000 COP or 1 USD",
       "Prediction: exact score",
       "Predictions close 15 minutes before kickoff.",
@@ -725,7 +727,7 @@ function buildWhatsappMessage(db, type, language, matchId) {
   return [
     "Polla Mundialista 2026",
     "",
-    `Partido: ${match.homeTeam} vs ${match.awayTeam}`,
+    `Partido: ${matchName}`,
     "Entrada: 2,000 COP o 1 USD",
     "Prediccion: marcador exacto",
     "Las predicciones cierran 15 minutos antes del inicio.",

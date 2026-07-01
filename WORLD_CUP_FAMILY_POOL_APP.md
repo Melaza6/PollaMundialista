@@ -28,7 +28,7 @@ Core product rules:
 - Invite-only family access.
 - Bilingual UI: Spanish and English.
 - Fair payout accounting: every player contributes 2,000 COP to the main pot, even if they pay 1 USD.
-- USD exchange-rate excess becomes a separate bonus for the best prediction score; ties split the bonus.
+- USD exchange-rate excess becomes a separate final-tournament bonus for the user with the most exact-score points; ties split whole COP pesos deterministically.
 - In-app payment flow for COP and USD entries.
 - Automatic score/result sync through a football results API.
 - WhatsApp family group sharing for reminders, links, results, and winners.
@@ -174,8 +174,10 @@ USD excess rule:
 - If someone pays 1 USD, the app converts that payment to COP using the locked exchange rate.
 - Any value above 2,000 COP is not added to the main pot.
 - That excess becomes a separate USD bonus.
-- The bonus goes to the family member with the most exact-score predictions.
-- If there is a tie for most exact-score predictions, the bonus is split equally among those tied users.
+- The bonus goes only to the final tournament winner: the family member with the most exact-score points at the end of the tournament.
+- If there is a tie for most exact-score points, the bonus is split in whole COP pesos among those tied users, with leftover pesos assigned deterministically by user ID.
+- Match winners never receive the USD exchange bonus as part of a match pot.
+- No-exact-winner match refunds include only the match base-pot contribution, not the USD exchange bonus.
 
 Regla del exceso en USD:
 
@@ -183,8 +185,10 @@ Regla del exceso en USD:
 - Si alguien paga 1 USD, la app convierte ese pago a COP usando la tasa guardada.
 - Cualquier valor por encima de 2,000 COP no se suma a la bolsa principal.
 - Ese exceso se convierte en un bono separado.
-- El bono va para el familiar con mas marcadores exactos.
-- Si hay empate en marcadores exactos, el bono se divide por partes iguales entre los empatados.
+- El bono va solo para el ganador final del torneo: el familiar con mas puntos por marcadores exactos al final del torneo.
+- Si hay empate en puntos por marcadores exactos, el bono se divide en pesos colombianos enteros entre esos usuarios, con sobrantes asignados de forma deterministica por ID de usuario.
+- Los ganadores de partidos no reciben el bono USD como parte del pozo del partido.
+- Los reembolsos de partidos sin marcador exacto incluyen solo el aporte base del partido, no el bono USD.
 
 ## 5. Currency Handling / Monedas
 
@@ -644,13 +648,15 @@ Settlement steps:
 2. Lock pool if not already locked.
 3. Score all paid bets.
 4. Find highest score.
-5. Mark all top scorers as base-pot winners.
-6. Split the base pot evenly among top scorers.
-7. Calculate USD excess bonus from USD payments only.
-8. Give the USD excess bonus to the best prediction score.
-9. If the best prediction score is tied, split the USD excess bonus among tied users.
-10. Generate WhatsApp result message.
-11. Show payout summary with base pot, USD bonus, and total payout.
+5. Mark exact-score predictors as match-pot winners.
+6. Split only that match base pot among exact-score winners.
+7. If there is no exact-score winner, create manual refund ledger records for verified match participants using only base-pot contributions.
+8. Calculate USD excess bonus from verified USD payments only.
+9. Keep the USD excess bonus separate from match pots and refunds.
+10. At the end of the tournament, give the USD excess bonus to the user(s) with the most exact-score points.
+11. If the final tournament winner is tied, split the USD excess bonus in whole COP pesos deterministically.
+12. Generate WhatsApp result message.
+13. Show payout summary with match pot, manual refunds, and separate USD bonus.
 ```
 
 ## 14. Family-Friendly Guardrails
