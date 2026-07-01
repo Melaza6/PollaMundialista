@@ -153,20 +153,20 @@ Scoring:
 
 | Prediction / Prediccion | Points / Puntos |
 |---|---:|
-| Exact score / Marcador exacto | 5 |
-| Correct result only / Resultado correcto solamente | 2 |
+| Exact score / Marcador exacto | 1 |
+| Correct winner only / Ganador correcto solamente | 0 |
 | Incorrect result / Resultado incorrecto | 0 |
 
 Example:
 
 - Final score: Mexico 2-0 South Africa.
-- Ana picked 2-0: 5 points.
-- Carlos picked 1-0: 2 points.
+- Ana picked 2-0: 1 point.
+- Carlos picked 1-0: 0 points.
 - Diego picked 0-1: 0 points.
 
-Highest score wins the base pot. If multiple people tie for highest score, they split the base pot equally.
+Exact-score winner(s) split that match pot. If nobody has the exact score, verified participants for that match get manual refund ledger records.
 
-Gana el puntaje mas alto. Si hay empate, se divide la bolsa base entre los ganadores.
+Quien(es) acierten el marcador exacto dividen el pozo de ese partido. Si nadie acierta, se crean registros de reembolso manual para los participantes verificados de ese partido.
 
 USD excess rule:
 
@@ -174,8 +174,8 @@ USD excess rule:
 - If someone pays 1 USD, the app converts that payment to COP using the locked exchange rate.
 - Any value above 2,000 COP is not added to the main pot.
 - That excess becomes a separate USD bonus.
-- The bonus goes to the family member with the best prediction score.
-- If there is a tie for best prediction score, the bonus is split equally among those tied users.
+- The bonus goes to the family member with the most exact-score predictions.
+- If there is a tie for most exact-score predictions, the bonus is split equally among those tied users.
 
 Regla del exceso en USD:
 
@@ -183,8 +183,8 @@ Regla del exceso en USD:
 - Si alguien paga 1 USD, la app convierte ese pago a COP usando la tasa guardada.
 - Cualquier valor por encima de 2,000 COP no se suma a la bolsa principal.
 - Ese exceso se convierte en un bono separado.
-- El bono va para el familiar con el mejor puntaje de prediccion.
-- Si hay empate en el mejor puntaje, el bono se divide por partes iguales entre los empatados.
+- El bono va para el familiar con mas marcadores exactos.
+- Si hay empate en marcadores exactos, el bono se divide por partes iguales entre los empatados.
 
 ## 5. Currency Handling / Monedas
 

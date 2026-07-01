@@ -394,6 +394,94 @@ pnpm db:check
 - Changes remain uncommitted.
 - No commit was made during this pass.
 
+## 2026-07-01 Exact-score match-pot scoring change
+
+### Summary
+- Continued and completed the `logic/exact-score-match-pot` branch after the previous partial edit.
+- Changed prediction scoring from the old `5/2/0` model to exact-score-only scoring:
+  - exact score = `1` point
+  - correct winner/result without exact score = `0` points
+  - wrong prediction = `0` points
+- Match settlement now uses exact-score winners only. Correct-winner-only predictions cannot win a match pot.
+- Only verified paid predictions count toward match pots, winner payouts, and refund records.
+- Manual payouts/refunds remain ledger records only; no automatic money movement was added.
+
+### Files changed
+- `lib/rules.js`
+- `public/app.js`
+- `test/settlement.test.js`
+- `WORLD_CUP_FAMILY_POOL_APP.md`
+- `docs/AGENT_HANDOFF.md`
+
+### Logic changes
+- `scorePrediction()` now returns `1`, `0`, or `null` for non-final results.
+- `calculateStandings()` now totals exact-score points only and keeps `correctResult` at `0` for compatibility.
+- `calculateMatchSettlement()` now:
+  - sums only verified match payments into the match base pot
+  - keeps USD exchange excess separate from the match pot
+  - splits the match pot only among exact-score winners
+  - uses deterministic whole-peso split by `userId` for leftover COP
+  - returns manual refund records when a final match has verified paid participants but no exact-score winner
+- `calculatePayoutLedger()` now emits `match_refund` ledger records for no-exact-winner matches.
+- WhatsApp winner copy now mentions `1` point for exact winners and manual refunds when no exact winner exists.
+
+### UI/copy updates
+- Match cards and admin match result cards now show settlement summary:
+  - match pot
+  - winner payout amount
+  - split count when multiple exact winners share the pot
+  - manual refund state when no exact winner exists
+  - exact-score-only points copy
+- Spanish/English rules copy now explains exact score = 1 point, all other final predictions = 0 points.
+- `WORLD_CUP_FAMILY_POOL_APP.md` was updated to remove old 5/2 examples and describe match-pot refunds.
+
+### Tests added/updated
+- Added/updated tests for:
+  - exact score gives 1 point
+  - correct winner but wrong score gives 0
+  - wrong prediction gives 0
+  - one exact-score winner receives the match pot
+  - multiple exact-score winners split the match pot
+  - deterministic whole-peso leftover split by `userId`
+  - no exact-score winner creates refund records for verified participants
+  - unpaid/rejected predictions do not count toward match pot/refunds
+  - payout ledger creates manual `match_refund` records
+  - public app includes `renderSettlementSummary()` and rejects old 5/2 copy
+
+### Verification
+```bash
+node --check lib/rules.js
+node --check public/app.js
+node --check server.js
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+pnpm db:check
+```
+- `node --check lib/rules.js`: passed.
+- `node --check public/app.js`: passed.
+- `node --check server.js`: passed.
+- `pnpm install --frozen-lockfile`: passed, already up to date.
+- `pnpm build`: passed, 48/48 tests inside build.
+- `pnpm test`: passed, 48/48 tests.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed, 48/48 tests.
+- `pnpm db:check`: passed, Supabase checked 11 tables.
+- Local warning remains: current Node is `v24.14.0`; project engines want Node `22.x`.
+
+### Remaining risks
+- Existing launch blockers from prior entries still apply until production env/readiness and unauthenticated state scoping are verified on the live deployment.
+- No live browser/production QA was run for this scoring branch.
+- Refunds are calculated as manual ledger records only; admin still needs to approve/pay outside the app.
+
+### Recommended next agent
+- `.agents/qa-test-engineer.md` for live smoke after deployment.
+- `.agents/rules-compliance-risk.md` if legal/compliance wording needs a final human review before real-money family use.
+
+### Git status
+- Changes remain uncommitted.
+- No commit was made during this pass.
+
 ## 2026-06-29 Colombian sleek restyle pass
 
 ### Summary

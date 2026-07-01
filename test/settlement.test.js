@@ -18,6 +18,7 @@ import {
   getNextMatches,
   isAdminCorrectionLocked,
   isPredictionLocked,
+  scorePrediction,
   syncApiResult,
 } from "../lib/rules.js";
 import { findIdentityMatches, normalizeName, normalizePhone, validateRegistrationInput } from "../lib/auth.js";
@@ -66,7 +67,14 @@ const finalMatch = {
   result: { status: "FINAL", homeScore: 2, awayScore: 1 },
 };
 
-test("USD exchange excess is separate from the base pot", () => {
+test("Exact-score scoring gives 1 point and all other final predictions give 0", () => {
+  assert.equal(scorePrediction({ homeScore: 2, awayScore: 1 }, finalMatch.result), 1);
+  assert.equal(scorePrediction({ homeScore: 1, awayScore: 0 }, finalMatch.result), 0);
+  assert.equal(scorePrediction({ homeScore: 0, awayScore: 2 }, finalMatch.result), 0);
+  assert.equal(scorePrediction({ homeScore: 2, awayScore: 1 }, { status: "SCHEDULED", homeScore: 2, awayScore: 1 }), null);
+});
+
+test("One exact-score winner receives the match pot and USD exchange excess stays separate", () => {
   const predictions = [
     { id: "p1", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1 },
     { id: "p2", matchId: "m1", userId: "u2", homeScore: 1, awayScore: 0 },
@@ -81,11 +89,12 @@ test("USD exchange excess is separate from the base pot", () => {
   assert.equal(settlement.basePotCop, 4000);
   assert.equal(settlement.usdExcessCop, 2000);
   assert.deepEqual(settlement.winners, [
-    { userId: "u1", predictionId: "p1", points: 5, basePayoutCop: 4000, bonusPayoutCop: 0, totalPayoutCop: 4000 },
+    { userId: "u1", predictionId: "p1", points: 1, basePayoutCop: 4000, bonusPayoutCop: 0, totalPayoutCop: 4000 },
   ]);
+  assert.deepEqual(settlement.refunds, []);
 });
 
-test("tied top match scores split only the base pot", () => {
+test("Multiple exact-score winners split only the match base pot", () => {
   const predictions = [
     { id: "p1", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1 },
     { id: "p2", matchId: "m1", userId: "u2", homeScore: 2, awayScore: 1 },
@@ -103,6 +112,70 @@ test("tied top match scores split only the base pot", () => {
     settlement.winners.map((winner) => winner.totalPayoutCop),
     [2000, 2000],
   );
+  assert.deepEqual(settlement.refunds, []);
+});
+
+test("Whole-peso match pot split is deterministic by userId", () => {
+  const predictions = [
+    { id: "p1", matchId: "m1", userId: "u2", homeScore: 2, awayScore: 1 },
+    { id: "p2", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1 },
+  ];
+  const payments = [
+    { predictionId: "p1", matchId: "m1", verificationStatus: "VERIFIED", basePotContributionCop: 2000, currency: "COP" },
+    { predictionId: "p2", matchId: "m1", verificationStatus: "VERIFIED", basePotContributionCop: 2001, currency: "COP" },
+  ];
+
+  const settlement = calculateMatchSettlement(finalMatch, predictions, payments);
+
+  assert.deepEqual(
+    settlement.winners.map((winner) => ({ userId: winner.userId, payout: winner.totalPayoutCop })),
+    [
+      { userId: "u2", payout: 2000 },
+      { userId: "u1", payout: 2001 },
+    ],
+  );
+});
+
+test("No exact-score winner creates manual refund records for verified match participants", () => {
+  const predictions = [
+    { id: "p1", matchId: "m1", userId: "u1", homeScore: 1, awayScore: 0 },
+    { id: "p2", matchId: "m1", userId: "u2", homeScore: 0, awayScore: 1 },
+  ];
+  const payments = [
+    { predictionId: "p1", matchId: "m1", userId: "u1", verificationStatus: "VERIFIED", ...calculatePaymentMoney("COP") },
+    { predictionId: "p2", matchId: "m1", userId: "u2", verificationStatus: "VERIFIED", ...calculatePaymentMoney("USD", 4000) },
+  ];
+
+  const settlement = calculateMatchSettlement(finalMatch, predictions, payments);
+
+  assert.equal(settlement.refundStatus, "REFUND_DUE");
+  assert.deepEqual(settlement.winners, []);
+  assert.deepEqual(
+    settlement.refunds.map((refund) => ({ userId: refund.userId, refundCop: refund.refundCop, reason: refund.reason })),
+    [
+      { userId: "u1", refundCop: 2000, reason: "NO_EXACT_SCORE_WINNER" },
+      { userId: "u2", refundCop: 2000, reason: "NO_EXACT_SCORE_WINNER" },
+    ],
+  );
+});
+
+test("Unpaid and rejected predictions do not count toward match pot winners or refunds", () => {
+  const predictions = [
+    { id: "p1", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1 },
+    { id: "p2", matchId: "m1", userId: "u2", homeScore: 1, awayScore: 0 },
+    { id: "p3", matchId: "m1", userId: "u3", homeScore: 0, awayScore: 1 },
+  ];
+  const payments = [
+    { predictionId: "p1", matchId: "m1", userId: "u1", verificationStatus: "REJECTED", ...calculatePaymentMoney("COP") },
+    { predictionId: "p2", matchId: "m1", userId: "u2", verificationStatus: "VERIFIED", ...calculatePaymentMoney("COP") },
+  ];
+
+  const settlement = calculateMatchSettlement(finalMatch, predictions, payments);
+
+  assert.equal(settlement.basePotCop, 2000);
+  assert.deepEqual(settlement.winners, []);
+  assert.deepEqual(settlement.refunds.map((refund) => refund.userId), ["u2"]);
+  assert.equal(settlement.refunds[0].refundCop, 2000);
 });
 
 test("World Cup bonus goes to most paid predictions and splits ties", () => {
@@ -195,10 +268,11 @@ test("Post-game winner message generation", () => {
     match: finalMatch,
     settlement: { winners: [{ userId: "u1" }] },
     users,
-    standings: [{ rank: 1, name: "Ana", points: 5 }],
+    standings: [{ rank: 1, name: "Ana", points: 1 }],
   });
   assert.match(message, /Resultado final: Colombia 2 - 1 Brasil/);
   assert.match(message, /Ana/);
+  assert.match(message, /1 punto/);
 });
 
 test("API result synchronization uses API-provided scores", () => {
@@ -556,6 +630,27 @@ test("Payout ledger calculates manual records without sending money", () => {
   assert.equal(payouts[0].paidAt, null);
 });
 
+test("Payout ledger creates manual refund records when no exact-score winner exists", () => {
+  const predictions = [
+    { id: "p1", matchId: "m1", userId: "u1", homeScore: 1, awayScore: 0 },
+    { id: "p2", matchId: "m1", userId: "u2", homeScore: 0, awayScore: 1 },
+  ];
+  const payments = [
+    { predictionId: "p1", matchId: "m1", userId: "u1", verificationStatus: "VERIFIED", ...calculatePaymentMoney("COP") },
+    { predictionId: "p2", matchId: "m1", userId: "u2", verificationStatus: "VERIFIED", ...calculatePaymentMoney("USD", 4000) },
+  ];
+
+  const payouts = calculatePayoutLedger(users, [finalMatch], predictions, payments);
+
+  assert.deepEqual(
+    payouts.map((payout) => ({ userId: payout.userId, prizeType: payout.prizeType, amountCop: payout.amountCop, status: payout.status, paidAt: payout.paidAt })),
+    [
+      { userId: "u1", prizeType: "match_refund", amountCop: 2000, status: "calculated", paidAt: null },
+      { userId: "u2", prizeType: "match_refund", amountCop: 2000, status: "calculated", paidAt: null },
+    ],
+  );
+});
+
 test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () => {
   const appSource = readFileSync("public/app.js", "utf8");
   const css = readFileSync("public/styles.css", "utf8");
@@ -564,6 +659,10 @@ test("Landing page, auth cleanup, and Colombian mobile theme markers exist", () 
   assert.doesNotMatch(appSource, /Google|Gmail|continueGoogle|googleDemoBtn|preferredCurrency|profileForm|Stripe|Wompi|Mercado Pago|PayU/i);
   assert.doesNotMatch(appSource, /function renderInlinePredictionEditor/);
   assert.match(appSource, /manualPaymentNotice/);
+  assert.match(appSource, /function renderSettlementSummary/);
+  assert.match(appSource, /renderSettlementSummary\(match\.id\)/);
+  assert.match(appSource, /exactScorePoints/);
+  assert.doesNotMatch(appSource, /Exact score earns 5 points|Correct result earns 2 points|Marcador exacto da 5 puntos|Resultado correcto da 2 puntos/);
   assert.match(appSource, /admin-correction-form/);
   assert.match(appSource, /renderRulesPage/);
   assert.match(appSource, /renderMatchDay/);

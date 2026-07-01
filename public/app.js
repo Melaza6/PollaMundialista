@@ -76,6 +76,11 @@ const i18n = {
     markPending: "Marcar pendiente",
     reject: "Rechazar",
     basePot: "Pozo base",
+    matchPot: "Pozo del partido",
+    winnerPayout: "Premio por ganador",
+    refundDue: "Reembolso manual",
+    noExactWinnerRefund: "Sin marcador exacto: reembolso manual a participantes verificados.",
+    exactScorePoints: "Marcador exacto: 1 punto. Resultado acertado sin marcador exacto: 0 puntos.",
     usdExcess: "Exceso por tasa de cambio USD",
     mostCorrectPrize: "Premio por más predicciones acertadas",
     totalCollected: "Total recaudado",
@@ -220,6 +225,11 @@ const i18n = {
     markPending: "Mark pending",
     reject: "Reject",
     basePot: "Base pot",
+    matchPot: "Match pot",
+    winnerPayout: "Winner payout",
+    refundDue: "Manual refund",
+    noExactWinnerRefund: "No exact score: manual refund for verified participants.",
+    exactScorePoints: "Exact score: 1 point. Correct winner without exact score: 0 points.",
     usdExcess: "USD exchange rate excess",
     mostCorrectPrize: "Most correct predictions prize",
     totalCollected: "Total collected",
@@ -761,9 +771,30 @@ function renderMatchCard(match) {
       <p>${info.locked ? t("locked") : t("open")} · ${fmtDate(info.lockAt)}</p>
       ${userPrediction ? `<strong>${t("myPredictions")}: ${userPrediction.homeScore}-${userPrediction.awayScore}</strong>` : ""}
       ${userPrediction ? `<p>${t("payment")}: ${paymentStatus(paymentForPrediction(userPrediction.id))}</p>` : ""}
+      ${renderSettlementSummary(match.id)}
       ${renderPredictionForm(match, userPrediction, info.locked)}
       <button class="ghost small match-predictions-button" type="button" data-show-predictions="${match.id}">${t("viewPredictions")}</button>
     </article>
+  `;
+}
+
+function renderSettlementSummary(matchId) {
+  const settlement = state.settlements?.find((item) => item.matchId === matchId);
+  if (!settlement || !settlement.paidCount) return "";
+  const winnerPayouts = settlement.winners || [];
+  const largestPayout = Math.max(0, ...winnerPayouts.map((winner) => Number(winner.totalPayoutCop || 0)));
+  const payoutText = winnerPayouts.length
+    ? `${money(largestPayout)}${winnerPayouts.length > 1 ? ` x ${winnerPayouts.length}` : ""}`
+    : settlement.refundStatus === "REFUND_DUE"
+      ? t("refundDue")
+      : "-";
+  return `
+    <div class="mini-list settlement-summary">
+      <div><span>${t("matchPot")}</span><strong>${money(settlement.basePotCop)}</strong></div>
+      <div><span>${t("winnerPayout")}</span><strong>${payoutText}</strong></div>
+      ${settlement.refundStatus === "REFUND_DUE" ? `<div><span>${t("status")}</span><strong>${t("noExactWinnerRefund")}</strong></div>` : ""}
+      <div><span>${t("points")}</span><strong>${t("exactScorePoints")}</strong></div>
+    </div>
   `;
 }
 
@@ -860,14 +891,14 @@ function renderRulesPage() {
     lang === "en"
       ? [
           ["Entry", ["Family exact-score pool for one match at a time.", "Sign up and log in with name and phone only.", "Payments are manual: 2,000 COP or 1 USD per entry."]],
-          ["Predictions", ["Users can edit only their own prediction until 15 minutes before kickoff.", "Everyone can see submitted predictions.", "Exact score earns 5 points. Correct result earns 2 points. Otherwise 0 points."]],
-          ["Payments and Prizes", ["Every verified entry contributes exactly 2,000 COP to the base pot.", "USD excess over 2,000 COP goes to the separate World Cup bonus pot.", "Prize payouts are manual and confirmed by the admin."]],
+          ["Predictions", ["Users can edit only their own prediction until 15 minutes before kickoff.", "Everyone can see submitted predictions.", "Exact score earns 1 point. Correct winner without the exact score earns 0 points."]],
+          ["Payments and Prizes", ["Every verified entry contributes exactly 2,000 COP to that match pot.", "Exact-score winner(s) split the match pot. If nobody has the exact score, verified participants get manual refund ledger records.", "USD excess over 2,000 COP stays in the separate World Cup bonus pot.", "Prize payouts and refunds are manual and confirmed by the admin."]],
           ["Results", ["Official API results are the settlement source.", "If sync is delayed, results show pending sync.", "For help, contact the family admin."]],
         ]
       : [
           ["Participacion", ["Polla familiar de marcador exacto, un partido a la vez.", "Registrate e inicia sesion solo con nombre y telefono.", "Los pagos son manuales: 2,000 COP o 1 USD por entrada."]],
-          ["Predicciones", ["Puedes editar solo tu prediccion hasta 15 minutos antes del inicio.", "Todos pueden ver las predicciones enviadas.", "Marcador exacto da 5 puntos. Resultado correcto da 2 puntos. Si no, 0 puntos."]],
-          ["Pagos y premios", ["Cada entrada verificada aporta exactamente 2,000 COP al pozo base.", "El exceso de USD sobre 2,000 COP va al bono separado del Mundial.", "Los pagos de premios son manuales y confirmados por el administrador."]],
+          ["Predicciones", ["Puedes editar solo tu prediccion hasta 15 minutos antes del inicio.", "Todos pueden ver las predicciones enviadas.", "Marcador exacto da 1 punto. Acertar solo el ganador sin marcador exacto da 0 puntos."]],
+          ["Pagos y premios", ["Cada entrada verificada aporta exactamente 2,000 COP al pozo de ese partido.", "Quien(es) acierten el marcador exacto dividen el pozo del partido. Si nadie acierta, quedan reembolsos manuales para los participantes verificados.", "El exceso de USD sobre 2,000 COP va al bono separado del Mundial.", "Los pagos de premios y reembolsos son manuales y confirmados por el administrador."]],
           ["Resultados", ["Los resultados oficiales de la API son la fuente para liquidar.", "Si se demora la sincronizacion, queda pendiente.", "Si necesitas ayuda, contacta al administrador familiar."]],
         ];
   return groups
@@ -1182,6 +1213,7 @@ function renderAdminMatch(match) {
     <div class="admin-match">
       <strong>${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</strong>
       <span class="match-result">${result}</span>
+      ${renderSettlementSummary(match.id)}
       <button class="ghost small" data-sync-result="${match.id}">${t("syncResult")}</button>
     </div>
   `;
