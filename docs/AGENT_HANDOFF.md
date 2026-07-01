@@ -827,3 +827,54 @@ pnpm db:check
 ### Git status
 - Changes remain uncommitted.
 - No commit was made during this pass.
+
+## 2026-07-01 All agents app review
+
+### Summary
+- Branch: `audit/all-agents-app-review`.
+- Created a documentation-only multi-agent audit report.
+- Used all requested project agents and confirmed the current app rules, technical state, P0-P3 recommendations, suggested next branches, test priorities, UX/security/deployment/documentation improvements, risks, and roadmap.
+- No production app behavior was changed.
+
+### Files changed
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/AGENT_HANDOFF.md`
+
+### Key findings
+- P0: `/api/state` should be scoped by session role before wider use; unauthenticated/regular users should not receive admin-oriented collections or diagnostics.
+- P0: production readiness should be re-smoked after deploy, especially `ADMIN_PIN`, `SESSION_SECRET`, Supabase, sports API keys, and domain readiness.
+- P0: admin export backup needs a production/preview smoke before real family activity.
+- P0/P1: stale docs still describe older in-app payment/betting-style concepts and should be rewritten to match manual payments/manual payouts.
+- P1: add access-control regression tests, real mobile QA, Supabase RLS verification, sports provider readiness checks, and clearer settlement/payout operations.
+
+### Tests added/updated
+- None; documentation-only audit.
+
+### Commands run
+```bash
+git branch --show-current
+git status --short
+git pull
+git checkout -b audit/all-agents-app-review
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+pnpm db:check
+```
+
+### Result
+- Draft report created at `docs/ALL_AGENTS_APP_REVIEW.md`.
+- `pnpm install --frozen-lockfile`: passed; local Node warning remains because the shell uses Node `v24.14.0` and the project wants `22.x`.
+- `pnpm build`: passed, 51/51 tests.
+- `pnpm test`: passed, 51/51 tests.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed, 51/51 tests.
+- `pnpm db:check`: skipped because Supabase env vars were not available in this shell.
+- Secret scan: PowerShell fallback found only placeholder env var names in documentation; no real secrets found.
+
+### Remaining risks
+- Public/admin state scoping, production readiness, export backup smoke, stale docs, and live mobile QA remain open recommendations.
+
+### Recommended next agent
+- `.agents/security-auth-review.md` for `security/scope-public-state`.
+- Then `.agents/launch-deployment.md` and `.agents/qa-test-engineer.md` for live readiness and mobile smoke.
