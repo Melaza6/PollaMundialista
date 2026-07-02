@@ -981,3 +981,100 @@ VERCEL=1 NODE_ENV=production pnpm test
 
 ### Recommended next agent
 - `.agents/qa-test-engineer.md` for `qa/credentialed-production-smoke` after safe credentials are available.
+
+## 2026-07-02 Credentialed production smoke partial
+
+### Summary
+- Branch: `qa/credentialed-production-smoke`.
+- Ran credentialed production smoke for the approved regular test user against `https://polla.melazausa.com`.
+- Regular login succeeded as role `USER`; matches, predictions, standings, and current-user scoped payment/payout status loaded.
+- Confirmed regular-user `/api/state` did not expose phone fields, other users' payment records, audit logs, diagnostics, admin config, or env-like secret names.
+- Confirmed anonymous and regular-user `GET /api/admin/export/backup` both returned 403 Forbidden.
+- Admin login/export smoke was not executed because the admin PIN was not available to the shell as `ADMIN_PIN`, and using the chat value directly would have logged the secret.
+
+### Files changed
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+
+### Commands run
+```bash
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+```
+
+### Result
+- Local syntax checks passed.
+- `pnpm install --frozen-lockfile`: passed; lifecycle verification passed.
+- `pnpm build`: passed; tests passed 54/54 inside build.
+- `pnpm test`: passed 54/54.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed 54/54.
+- `pnpm db:check`: skipped because Supabase env vars were not available in this shell.
+- Production data touched: regular test-user login only; no predictions, payments, payouts, refunds, syncs, result changes, or exports were triggered.
+
+### Remaining risks
+- Admin production login smoke remains open.
+- Authenticated admin export backup smoke remains open.
+- Production Supabase/storage mode confirmation remains open because anonymous readiness does not expose storage status and admin diagnostics were not accessed.
+- Real mobile/browser QA remains open.
+
+### Recommended next agent
+- `.agents/launch-deployment.md`, `.agents/security-auth-review.md`, and `.agents/qa-test-engineer.md` for `qa/admin-production-export-smoke` once the admin PIN is available as a secure environment variable.
+
+## 2026-07-02 Credentialed production smoke continuation
+
+### Summary
+- Continued on branch `qa/credentialed-production-smoke`.
+- Preflight confirmed the branch was correct, but `ADMIN_PIN` was still not visible to the Codex command environment.
+- A proposed credentialed admin/export command that would have loaded the PIN from a local file and fetched a protected backup was rejected because prior task instructions required environment-variable-only credential use and the export contains private production data.
+- No admin login, admin dashboard inspection, production export backup, payment action, payout/refund action, result change, or result sync was performed.
+- No local export file was created.
+
+### Files changed
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- None; documentation/status update only.
+
+### Commands run
+```bash
+pwd
+git branch --show-current
+git status --short
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --config.confirmModulesPurge=false
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+```
+
+### Result
+- `node --check server.js`: passed.
+- `node --check public/app.js`: passed.
+- `node --check lib/rules.js`: passed.
+- `pnpm install --frozen-lockfile`: first run stopped for non-TTY purge confirmation; rerun with `--config.confirmModulesPurge=false` timed out after recreating `node_modules`; escalated rerun passed.
+- `pnpm build`: first sandbox run failed with `spawn EPERM` in the child-process storage-error test; escalated rerun passed with 54/54 tests.
+- `pnpm test`: first sandbox run failed with the same `spawn EPERM`; escalated rerun passed with 54/54 tests.
+- `VERCEL=1 NODE_ENV=production pnpm test`: first sandbox run failed during package fetch with `ECONNREFUSED`; escalated rerun passed with 54/54 tests.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Admin production login smoke remains open.
+- Authenticated admin export backup smoke remains open.
+- Production Supabase/storage mode confirmation remains open unless the owner provides the admin PIN through an environment variable visible to Codex or explicitly approves a different non-logging credential-loading path.
+- Real browser/mobile QA remains open.
+
+### Recommended next agent
+- `.agents/qa-test-engineer.md` and `.agents/launch-deployment.md` for the credentialed admin/export smoke once credential handling is unblocked.

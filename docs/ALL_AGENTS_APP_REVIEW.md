@@ -203,8 +203,8 @@ Important code comments exist around production credential fallback and Vercel/s
 - Verify production env vars in Vercel after every deploy.
 - Keep `ADMIN_PIN` non-default and `SESSION_SECRET` long/random.
 - Confirm browser source and API responses do not expose service-role keys, database URLs, or sports API keys.
-- Run production/preview smoke tests after Vercel deploy.
-- Confirm Supabase migrations and RLS are applied before real family activity.
+- Run production/preview smoke tests after Vercel deploy. Regular-user credentialed smoke passed on `qa/credentialed-production-smoke`; local verification passed again on 2026-07-02. Admin/export smoke remains open until the admin PIN is available as an environment variable to the Codex command environment, or until the owner explicitly approves a different non-logging credential-loading path.
+- Confirm Supabase migrations, RLS, and production storage mode are applied before real family activity; this still needs admin/Vercel evidence.
 
 ## 10. Suggested Documentation Improvements
 
@@ -233,4 +233,5 @@ Important code comments exist around production credential fallback and Vercel/s
 4. **Harden settlement operations.** Add tournament bonus finalization and clearer admin payout/refund workflow.
 5. **Broaden QA.** Add Playwright smoke for mobile and core user/admin flows.
 6. **Refactor carefully.** Extract state serializers and route groups once security tests are in place.
+
 
