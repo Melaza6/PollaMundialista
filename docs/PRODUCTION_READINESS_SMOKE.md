@@ -125,3 +125,15 @@ Authenticated export was not triggered because admin credentials were not availa
 `qa/credentialed-production-smoke`
 
 Use that branch only after safe regular-user and admin test credentials are available.
+
+## Credentialed Follow-Up
+
+A follow-up was started on branch `qa/credentialed-production-smoke` on 2026-07-02.
+
+- Regular-user production smoke passed for the approved test user.
+- Anonymous and regular-user admin export access both returned 403 Forbidden.
+- Admin login, authenticated admin export backup, and Supabase/storage confirmation remain open because the admin PIN was not available to the shell through a non-logging channel.
+- Continuation on 2026-07-02 re-ran local verification successfully, including `pnpm build`, `pnpm test`, and `VERCEL=1 NODE_ENV=production pnpm test` after escalated reruns for sandbox/network issues.
+- The admin/export/storage production smoke remains open because `ADMIN_PIN` was still not available as an environment variable to the Codex command environment, and loading it from a local file was not approved under the environment-variable-only constraint.
+
+See `docs/CREDENTIALED_PRODUCTION_SMOKE.md` for details.
