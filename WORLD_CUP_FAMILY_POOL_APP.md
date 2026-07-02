@@ -6,6 +6,18 @@ App privada y familiar para apostar solo al marcador exacto de un partido del Mu
 
 Production domain / Dominio de produccion: `https://polla.melazausa.com`
 
+Workspace / Carpeta de trabajo: `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`
+
+Ecosystem positioning:
+
+Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+
+- MLP / Melaza Landing Page: public marketing website, ecosystem app, public showcase.
+- MN / Melaza Network: internal operations/admin platform, ecosystem app, private or sanitized showcase only.
+- Polla Mundialista: standalone product app, ecosystem app, public showcase, managed through MN.
+
+Polla Mundialista sits alongside MLP and MN at the ecosystem level. Melaza Network manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN.
+
 > Important: this should be positioned as a private family pool, not a public gambling platform. Keep access invite-only, avoid house profit, avoid minors participating with money, and confirm local rules before collecting or paying real money.
 >
 > Importante: esto debe manejarse como una polla privada familiar, no como una plataforma publica de apuestas. Mantener acceso por invitacion, sin ganancia para la casa, sin menores participando con dinero, y revisar las reglas locales antes de recolectar o pagar dinero real.

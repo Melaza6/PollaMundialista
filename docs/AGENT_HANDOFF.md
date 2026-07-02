@@ -19,6 +19,32 @@ Every major Codex task should read this file before making changes and update it
 | Storage       | Supabase production, JSON local fallback  | JSON is not recommended for production.             |
 | UX            | Mobile-first                              | Colombian-inspired yellow/blue/red theme.           |
 | Domain        | polla.melazausa.com                       | Production target.                                  |
+| Workspace     | `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial` | Standalone Melaza ecosystem product app. |
+
+---
+
+## Melaza ecosystem location
+
+Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+
+- MLP / Melaza Landing Page: public marketing website, ecosystem app, public showcase.
+- MN / Melaza Network: internal operations/admin platform, ecosystem app, private or sanitized showcase only.
+- Polla Mundialista: standalone product app, ecosystem app, public showcase, managed through MN.
+
+Polla Mundialista sits alongside MLP and MN at the ecosystem level. MN manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN.
+
+Use the Melaza ecosystem workspace only:
+
+```txt
+C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial
+```
+
+Do not use the previous locations:
+
+```txt
+C:\Users\Owner\Documents\Polla mundial
+C:\Users\Owner\OneDrive\Documents\Polla mundial
+```
 
 ---
 
@@ -286,7 +312,7 @@ Real secrets must not appear.
 ## 2026-06-24 UX resume completion
 
 ### Summary
-- Resumed the interrupted UX simplification pass in the GitHub-ready folder `C:\Users\Owner\Documents\Polla mundial`.
+- Resumed the interrupted UX simplification pass in the previous folder before the Melaza ecosystem move. Current workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
 - Kept the app on the existing name + phone login model, manual payments, manual payouts, internal sports provider adapter, and Spanish/English UI.
 - Added/verified tabbed user and admin navigation so the app is easier to use on phone and desktop.
 - Kept match cards focused while predictions/results details stay collapsible or on dedicated admin pages.
@@ -329,7 +355,7 @@ Real secrets must not appear.
 ## 2026-06-25 Vercel readiness verification completion
 
 ### Summary
-- Finished verification for the current Vercel readiness pass in `C:\Users\Owner\Documents\Polla mundial`.
+- Finished verification for the current Vercel readiness pass in the previous folder before the Melaza ecosystem move. Current workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
 - Confirmed `api/index.js` imports the exported `handleRequest` from `server.js` for Vercel Functions.
 - Confirmed `server.js` still starts a listener for local `node server.js`, while `VERCEL=1` import mode does not start a listener.
 - Hardened production credential behavior so blank/missing `ADMIN_PIN` and `SESSION_SECRET` do not silently use local demo defaults in production.
@@ -786,7 +812,7 @@ pnpm db:check
 ## 2026-06-29 Small UI fixes in correct app folder
 
 ### Summary
-- Applied the requested three small UI fixes in `C:\Users\Owner\Documents\Polla mundial`.
+- Applied the requested three small UI fixes in the previous folder before the Melaza ecosystem move. Current workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
 - Removed the unused landing-page Rules button.
 - Changed the match-card "Ver predicciones / View predictions" action so it opens the user Predictions tab for that specific match instead of only toggling inline details.
 - Shortened the regular-user mobile bottom-nav predictions label to `Pron.` in Spanish and `Preds` in English while preserving full labels on wider layouts.
@@ -1019,10 +1045,11 @@ VERCEL=1 NODE_ENV=production pnpm test
 - Production data touched: regular test-user login only; no predictions, payments, payouts, refunds, syncs, result changes, or exports were triggered.
 
 ### Remaining risks
-- Admin production login smoke remains open.
-- Authenticated admin export backup smoke remains open.
-- Production Supabase/storage mode confirmation remains open because anonymous readiness does not expose storage status and admin diagnostics were not accessed.
-- Real mobile/browser QA remains open.
+- Admin production smoke remains deferred.
+- Authenticated admin export backup smoke remains deferred.
+- Supabase/storage confirmation remains deferred because anonymous readiness does not expose storage status and admin diagnostics were not accessed.
+- Real mobile/browser QA remains deferred.
+- Production `ADMIN_PIN` should be rotated because a value was pasted into chat during credentialed smoke planning.
 
 ### Recommended next agent
 - `.agents/launch-deployment.md`, `.agents/security-auth-review.md`, and `.agents/qa-test-engineer.md` for `qa/admin-production-export-smoke` once the admin PIN is available as a secure environment variable.
@@ -1071,10 +1098,80 @@ VERCEL=1 NODE_ENV=production pnpm test
 - Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
 
 ### Remaining risks
-- Admin production login smoke remains open.
-- Authenticated admin export backup smoke remains open.
-- Production Supabase/storage mode confirmation remains open unless the owner provides the admin PIN through an environment variable visible to Codex or explicitly approves a different non-logging credential-loading path.
-- Real browser/mobile QA remains open.
+- Admin production smoke remains deferred.
+- Authenticated admin export backup smoke remains deferred.
+- Supabase/storage confirmation remains deferred unless the owner provides the admin PIN through an environment variable visible to Codex or explicitly approves a different non-logging credential-loading path.
+- Real mobile/browser QA remains deferred.
+- Production `ADMIN_PIN` should be rotated because a value was pasted into chat during credentialed smoke planning.
 
 ### Recommended next agent
 - `.agents/qa-test-engineer.md` and `.agents/launch-deployment.md` for the credentialed admin/export smoke once credential handling is unblocked.
+
+## 2026-07-02 Melaza ecosystem workspace documentation update
+
+### Summary
+- Branch: `docs/clarify-polla-ecosystem-location`.
+- Verified the moved workspace at `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
+- Documented that Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+- Clarified that MLP, MN, and Polla Mundialista sit alongside each other at the ecosystem level.
+- Marked admin production smoke, authenticated admin export backup smoke, Supabase/storage confirmation, and real mobile/browser QA as deferred.
+- Documented that production `ADMIN_PIN` should be rotated because a value was pasted into chat.
+- README.md was not updated because it is not present in this workspace.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/product-manager.md`
+- `.agents/code-comments-documentation.md`
+- `.agents/security-auth-review.md`
+- `.agents/qa-test-engineer.md`
+
+### Files changed
+- `WORLD_CUP_FAMILY_POOL_APP.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+
+### Tests added/updated
+- None; documentation-only update.
+
+### Commands run
+```powershell
+pwd
+git branch --show-current
+git status --short
+git pull
+git checkout -b docs/clarify-polla-ecosystem-location
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd install --frozen-lockfile --config.confirmModulesPurge=false
+pnpm.cmd build
+pnpm.cmd test
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+node --check server.js
+node --check public/app.js
+node --check lib/env.js
+node --check server/sportsProvider.js
+node --check server/exchangeRateProvider.js
+git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin"
+```
+
+### Result
+- `git pull`: passed after sandbox escalation; main was already up to date.
+- `pnpm.cmd install --frozen-lockfile`: first run stopped on non-TTY module purge prompt; rerun with `--config.confirmModulesPurge=false` hit restricted-network `ECONNREFUSED`; escalated rerun passed.
+- `pnpm.cmd build`: passed, 54/54 tests inside build.
+- `pnpm.cmd test`: first sandbox run failed with `spawn EPERM` in the child-process storage-error test; escalated rerun passed, 54/54 tests.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: first sandbox run hit restricted-network dependency fetches after `node_modules` recreation; escalated rerun passed, 54/54 tests.
+- Explicit `node --check` commands passed for `server.js`, `public/app.js`, `lib/env.js`, `server/sportsProvider.js`, and `server/exchangeRateProvider.js`.
+- Secret scan found only env var names and rotation guidance; no actual `2026-Admin` value or real API/database/session secret appeared.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Admin production smoke remains deferred.
+- Authenticated admin export backup smoke remains deferred.
+- Supabase/storage confirmation remains deferred.
+- Real mobile/browser QA remains deferred.
+- Production `ADMIN_PIN` still needs rotation outside this repo.
+
+### Recommended next agent
+- `.agents/qa-test-engineer.md` and `.agents/launch-deployment.md` for the deferred admin/export/storage production smoke after secure credential handling is available.

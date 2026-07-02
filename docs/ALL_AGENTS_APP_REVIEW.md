@@ -4,6 +4,16 @@ Date: 2026-07-01
 Branch: `audit/all-agents-app-review`  
 Scope: documentation-only multi-agent audit. No production app behavior was changed.
 
+## Ecosystem Location
+
+Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+
+- MLP / Melaza Landing Page: public marketing website, ecosystem app, public showcase.
+- MN / Melaza Network: internal operations/admin platform, ecosystem app, private or sanitized showcase only.
+- Polla Mundialista: standalone product app, ecosystem app, public showcase, managed through MN.
+
+Polla Mundialista sits alongside MLP and MN at the ecosystem level. MN manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN. The verified local workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
+
 ## 1. Executive Summary
 
 Polla Mundialista 2026 is close to a focused MVP: name + phone access, no email/Google auth, exact-score-only scoring, manual payments, manual payouts, Supabase production storage, JSON local fallback, provider-backed World Cup sync, Colombian-themed bilingual UI, and mobile-first navigation are all represented in the current codebase.
@@ -202,6 +212,7 @@ Important code comments exist around production credential fallback and Vercel/s
 - Add endpoint authorization tests for every admin route.
 - Verify production env vars in Vercel after every deploy.
 - Keep `ADMIN_PIN` non-default and `SESSION_SECRET` long/random.
+- Rotate the production `ADMIN_PIN` because a value was pasted into chat during credentialed smoke planning.
 - Confirm browser source and API responses do not expose service-role keys, database URLs, or sports API keys.
 - Run production/preview smoke tests after Vercel deploy. Regular-user credentialed smoke passed on `qa/credentialed-production-smoke`; local verification passed again on 2026-07-02. Admin/export smoke remains open until the admin PIN is available as an environment variable to the Codex command environment, or until the owner explicitly approves a different non-logging credential-loading path.
 - Confirm Supabase migrations, RLS, and production storage mode are applied before real family activity; this still needs admin/Vercel evidence.

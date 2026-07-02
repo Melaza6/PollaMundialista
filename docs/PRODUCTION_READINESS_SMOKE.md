@@ -5,6 +5,16 @@ Branch: `deploy/production-readiness-smoke`
 Production URL: `https://polla.melazausa.com`  
 Scope: post-deploy smoke after the P0 `/api/state` scoping fix. No app behavior was changed.
 
+## Ecosystem Location
+
+Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+
+- MLP / Melaza Landing Page: public marketing website, ecosystem app, public showcase.
+- MN / Melaza Network: internal operations/admin platform, ecosystem app, private or sanitized showcase only.
+- Polla Mundialista: standalone product app, ecosystem app, public showcase, managed through MN.
+
+Polla Mundialista sits alongside MLP and MN at the ecosystem level. MN manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN. The verified local workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
+
 ## Local Verification
 
 - `node --check server.js`: passed.
@@ -115,9 +125,11 @@ Authenticated export was not triggered because admin credentials were not availa
 ## Remaining Risks
 
 - Authenticated regular-user and admin production QA still require test credentials or a safe test data plan.
-- Admin export backup still needs a credentialed production smoke before real family activity.
-- Production Supabase storage mode is not explicitly visible to anonymous smoke after state scoping; confirm through admin Tools, Vercel env, or a storage-aware admin-only readiness check.
-- Real browser/mobile visual QA at 375x812, 768x1024, and 1280x900 remains a separate launch gate.
+- Admin production smoke remains deferred.
+- Authenticated admin export backup smoke remains deferred.
+- Supabase/storage confirmation remains deferred; production Supabase storage mode is not explicitly visible to anonymous smoke after state scoping, so confirm through admin Tools, Vercel env, or a storage-aware admin-only readiness check.
+- Real mobile/browser QA at 375x812, 768x1024, and 1280x900 remains deferred as a separate launch gate.
+- Production `ADMIN_PIN` should be rotated because a value was pasted into chat during credentialed smoke planning.
 - Consider extending `/api/live-readiness` with an admin-only or safe aggregate storage check if the owner wants Supabase readiness visible in a smoke endpoint.
 
 ## Recommended Next Branch

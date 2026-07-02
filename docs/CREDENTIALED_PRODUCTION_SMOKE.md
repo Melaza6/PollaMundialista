@@ -5,10 +5,21 @@ Branch: `qa/credentialed-production-smoke`
 Production URL: `https://polla.melazausa.com`  
 Scope: credentialed production smoke follow-up after the anonymous production readiness smoke. No app behavior was changed.
 
+## Ecosystem Location
+
+Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
+
+- MLP / Melaza Landing Page: public marketing website, ecosystem app, public showcase.
+- MN / Melaza Network: internal operations/admin platform, ecosystem app, private or sanitized showcase only.
+- Polla Mundialista: standalone product app, ecosystem app, public showcase, managed through MN.
+
+Polla Mundialista sits alongside MLP and MN at the ecosystem level. MN manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN. The verified local workspace is `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`.
+
 ## Credentials Used
 
 - Regular-user smoke used the approved production test user for this session: display name `Leo`; phone number intentionally omitted from this document.
 - Admin PIN was provided in chat, but it was not available to the command environment as `ADMIN_PIN`. To avoid placing the admin PIN in shell commands, tool logs, files, screenshots, commits, or reports, the admin login/export smoke was not executed in this pass.
+- Production `ADMIN_PIN` should be rotated because a value was pasted into chat.
 
 ## Regular-User Production Smoke Result
 
@@ -93,10 +104,11 @@ Known local warning: current Node is `v24.14.0`; project engines require Node `2
 
 ## Remaining Risks
 
-- Admin production login smoke still needs to be run with the admin PIN supplied through a non-logging channel.
-- Authenticated admin export backup smoke remains open.
-- Production admin diagnostics/readiness and Supabase storage mode confirmation remain open.
-- Real mobile/browser QA at 375x812, 768x1024, and 1280x900 remains a separate launch gate.
+- Admin production smoke remains deferred.
+- Authenticated admin export backup smoke remains deferred.
+- Supabase/storage confirmation remains deferred; production admin diagnostics/readiness and storage mode still need confirmation through admin Tools, Vercel evidence, or a storage-aware admin-only readiness surface.
+- Real mobile/browser QA at 375x812, 768x1024, and 1280x900 remains deferred as a separate launch gate.
+- Production `ADMIN_PIN` should be rotated because a value was pasted into chat during credentialed smoke planning.
 
 ## Recommended Next Branch
 
