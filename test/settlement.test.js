@@ -60,6 +60,113 @@ async function waitForHealth(port, attempts = 30, child = null, logs = []) {
   throw new Error(`Timed out waiting for test server. Logs: ${safeProcessLog(logs) || "(none)"}`);
 }
 
+let statePayloadPromise = null;
+
+async function loadStatePayload() {
+  if (!statePayloadPromise) {
+    const original = {
+      VERCEL: process.env.VERCEL,
+      DATA_STORAGE_DRIVER: process.env.DATA_STORAGE_DRIVER,
+      ADMIN_PIN: process.env.ADMIN_PIN,
+      SESSION_SECRET: process.env.SESSION_SECRET,
+    };
+    process.env.VERCEL = "1";
+    process.env.DATA_STORAGE_DRIVER = "json";
+    process.env.ADMIN_PIN = "test-admin-pin-not-2026";
+    process.env.SESSION_SECRET = "test-session-secret-long-enough-for-production";
+    statePayloadPromise = import("../server.js").then((module) => module.statePayload);
+    await statePayloadPromise;
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+  return statePayloadPromise;
+}
+
+function scopedStateFixture() {
+  const now = "2026-07-01T12:00:00.000Z";
+  return {
+    version: 2,
+    settings: {
+      appName: "Polla Mundialista 2026",
+      language: "es",
+      expectedEntryCop: 2000,
+      usdEntryCents: 100,
+      defaultUsdCopReceived: 3425,
+      exchangeRateNotes: "Public note",
+      publicBaseUrl: "https://polla.melazausa.com",
+      footballApiProvider: "api-football",
+      authProviders: ["Name + phone server session"],
+      dataStorageDriver: "supabase",
+    },
+    users: [
+      { id: "admin_1", role: "ADMIN", name: "Admin", phone: "5550000", paidStatus: "NOT_REQUIRED", language: "es" },
+      { id: "u1", role: "USER", name: "Ana", phone: "5551111", paidStatus: "PENDING", language: "es", createdAt: now, updatedAt: now },
+      { id: "u2", role: "USER", name: "Carlos", phone: "5552222", paidStatus: "UNPAID", language: "en", createdAt: now, updatedAt: now },
+    ],
+    matches: [
+      {
+        id: "m1",
+        homeTeam: "Colombia",
+        awayTeam: "Brazil",
+        kickoffAt: "2026-06-20T20:00:00.000Z",
+        venue: "Miami",
+        status: "FINAL",
+        result: { status: "FINAL", homeScore: 2, awayScore: 1 },
+        apiResult: null,
+        resultSync: { status: "SYNCED", message: "admin provider detail" },
+      },
+    ],
+    predictions: [
+      { id: "p1", matchId: "m1", userId: "u1", homeScore: 2, awayScore: 1, createdAt: now, updatedAt: now },
+      { id: "p2", matchId: "m1", userId: "u2", homeScore: 1, awayScore: 0, createdAt: now, updatedAt: now },
+    ],
+    payments: [
+      {
+        id: "pay1",
+        predictionId: "p1",
+        matchId: "m1",
+        userId: "u1",
+        currency: "COP",
+        ...calculatePaymentMoney("COP"),
+        userComment: "own safe comment",
+        reference: "own-reference",
+        adminNotes: "own admin-only note",
+        verificationStatus: "VERIFIED",
+        paidStatus: "PAID",
+      },
+      {
+        id: "pay2",
+        predictionId: "p2",
+        matchId: "m1",
+        userId: "u2",
+        currency: "USD",
+        ...calculatePaymentMoney("USD", 4000),
+        userComment: "other comment",
+        reference: "other-reference",
+        adminNotes: "other admin-only note",
+        verificationStatus: "PENDING",
+        paidStatus: "UNPAID",
+      },
+    ],
+    exchangeRate: {
+      rate: 3425,
+      source: "provider",
+      fetchedAt: now,
+      status: "LIVE",
+      invalidRejected: { rawValue: "342595", source: "provider" },
+    },
+    sportsSync: { status: "SYNCED", lastSyncedAt: now, rawProviderMessage: "admin-only sync detail" },
+    auditLogs: [
+      { id: "audit_1", actorRole: "ADMIN", action: "PAYMENT_VERIFIED", entityType: "payment", entityId: "pay1", reason: "admin action", createdAt: now },
+    ],
+    sessions: [],
+    predictionCorrections: [],
+    payouts: [{ id: "manual_payout_1", userId: "u2", prizeType: "manual", amountCop: 9999, status: "approved", adminNotes: "admin payout note" }],
+  };
+}
+
 const finalMatch = {
   id: "m1",
   homeTeam: "Colombia",
@@ -895,6 +1002,107 @@ test("/api/state returns JSON on storage error", async () => {
   }
 });
 
+test("Anonymous state exposes only public-safe bootstrap data", async () => {
+  const statePayload = await loadStatePayload();
+  const db = scopedStateFixture();
+  const state = statePayload(db, null);
+  const serialized = JSON.stringify(state);
+
+  assert.equal(state.currentUser, null);
+  assert.equal(state.matches.length, 1);
+  assert.equal(state.matches[0].homeTeam, "Colombia");
+  assert.equal(state.matches[0].resultSync, undefined);
+  assert.equal(state.settings.appName, "Polla Mundialista 2026");
+  assert.equal(state.settings.footballApiProvider, undefined);
+  assert.deepEqual(state.users, []);
+  assert.deepEqual(state.predictions, []);
+  assert.deepEqual(state.payments, []);
+  assert.deepEqual(state.payouts, []);
+  assert.deepEqual(state.auditLogs, []);
+  assert.deepEqual(state.adminPredictions, []);
+  assert.equal(state.storage, null);
+  assert.equal(state.sportsSync, null);
+  assert.equal(state.sportsVerification, null);
+  assert.equal(state.deployment, null);
+  for (const blocked of ["5551111", "5552222", "pay1", "manual_payout_1", "PAYMENT_VERIFIED", "admin provider detail", "admin-only sync detail", "SESSION_SECRET"]) {
+    assert.doesNotMatch(serialized, new RegExp(blocked));
+  }
+});
+
+test("Regular user state keeps all predictions but excludes other users' private/admin data", async () => {
+  const statePayload = await loadStatePayload();
+  const db = scopedStateFixture();
+  const currentUser = db.users.find((user) => user.id === "u1");
+  const state = statePayload(db, currentUser);
+  const serialized = JSON.stringify(state);
+
+  assert.deepEqual(state.currentUser, {
+    id: "u1",
+    role: "USER",
+    name: "Ana",
+    paidStatus: "PENDING",
+    language: "es",
+    createdAt: "2026-07-01T12:00:00.000Z",
+    updatedAt: "2026-07-01T12:00:00.000Z",
+  });
+  assert.equal(state.currentUser.phone, undefined);
+  assert.equal(state.matches.length, 1);
+  assert.equal(state.matches[0].resultSync, undefined);
+  assert.equal(state.predictions.length, 2);
+  assert.equal(state.predictions[0].userName, "Ana");
+  assert.equal(state.predictions[0].payment, undefined);
+  assert.equal(state.users.length, 2);
+  assert.deepEqual(state.users[0], { id: "u1", name: "Ana" });
+  assert.equal(state.standings.length, 2);
+  assert.equal(state.payments.length, 1);
+  assert.equal(state.payments[0].id, "pay1");
+  assert.equal(state.payments[0].adminNotes, undefined);
+  assert.equal(state.payments[0].reference, undefined);
+  assert.equal(state.auditLogs.length, 0);
+  assert.equal(state.adminPredictions.length, 0);
+  assert.equal(state.storage, null);
+  assert.equal(state.sportsSync, null);
+  assert.equal(state.sportsVerification, null);
+  assert.equal(state.exchangeRate.invalidRejected, undefined);
+  assert.ok(state.settlements.length > 0);
+
+  for (const blocked of [
+    "5551111",
+    "5552222",
+    "pay2",
+    "other-reference",
+    "other admin-only note",
+    "PAYMENT_VERIFIED",
+    "manual_payout_1",
+    "admin provider detail",
+    "admin-only sync detail",
+    "dataStorageDriver",
+    "SESSION_SECRET",
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(blocked));
+  }
+});
+
+test("Admin state preserves admin dashboard data after server-side admin role", async () => {
+  const statePayload = await loadStatePayload();
+  const db = scopedStateFixture();
+  const admin = db.users.find((user) => user.role === "ADMIN");
+  const state = statePayload(db, admin);
+
+  assert.equal(state.currentUser.role, "ADMIN");
+  assert.equal(state.users.some((user) => user.phone === "5552222"), true);
+  assert.equal(state.payments.length, 2);
+  assert.equal(state.payments.some((payment) => payment.adminNotes === "other admin-only note"), true);
+  assert.equal(state.adminPredictions.length, 2);
+  assert.equal(state.adminPredictions.some((row) => row.userPhone === "5552222"), true);
+  assert.equal(state.auditLogs.length, 1);
+  assert.ok(state.matchDay);
+  assert.ok(state.storage);
+  assert.ok(state.sportsSync);
+  assert.ok(state.sportsVerification);
+  assert.ok(state.deployment);
+});
+
 test("Supabase storage accepts project URLs and REST URLs", async () => {
   const originalFetch = globalThis.fetch;
   const requestedUrls = [];
@@ -1062,7 +1270,13 @@ test("Deployment diagnostics stay admin-only and do not expose secrets", () => {
   const serverSource = readFileSync("server.js", "utf8");
   const appSource = readFileSync("public/app.js", "utf8");
 
-  assert.match(serverSource, /deployment: currentUser\?\.role === "ADMIN" \? deploymentMetadata\(\) : null/);
+  assert.match(serverSource, /function serializePublicState/);
+  assert.match(serverSource, /function serializeUserState/);
+  assert.match(serverSource, /function serializeAdminState/);
+  assert.match(serverSource, /export function statePayload/);
+  assert.match(serverSource, /deployment: deploymentMetadata\(\)/);
+  assert.match(serverSource, /storage: null/);
+  assert.match(serverSource, /sportsVerification: null/);
   assert.match(serverSource, /VERCEL_GIT_COMMIT_SHA/);
   assert.match(serverSource, /commitSha\.slice\(0, 7\)/);
   assert.match(serverSource, /const isProduction = process\.env\.NODE_ENV === "production"/);
@@ -1071,6 +1285,8 @@ test("Deployment diagnostics stay admin-only and do not expose secrets", () => {
   assert.match(serverSource, /if \(!adminPin\) return sendJson\(res, 503/);
   assert.match(serverSource, /if \(!process\.env\.VERCEL\)/);
   assert.doesNotMatch(appSource, /SUPABASE_SERVICE_ROLE_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL/);
+  assert.doesNotMatch(appSource, /const payment = prediction\.payment/);
+  assert.match(appSource, /const payment = paymentForPrediction\(prediction\.id\)/);
   assert.match(appSource, /renderDeploymentStatus/);
   assert.match(appSource, /deploymentStatus/);
 });

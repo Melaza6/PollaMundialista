@@ -578,7 +578,127 @@ function requireAdmin(db, req) {
   return null;
 }
 
-function statePayload(db, currentUser = null) {
+function publicSettings(settings = {}) {
+  return {
+    appName: settings.appName,
+    language: settings.language,
+    expectedEntryCop: settings.expectedEntryCop,
+    usdEntryCents: settings.usdEntryCents,
+    defaultUsdCopReceived: settings.defaultUsdCopReceived,
+    exchangeRateNotes: settings.exchangeRateNotes,
+    publicBaseUrl: settings.publicBaseUrl,
+  };
+}
+
+function safeCurrentUser(user) {
+  if (!user) return null;
+  const { id, role, name, paidStatus, language, createdAt, updatedAt } = user;
+  return { id, role, name, paidStatus, language, createdAt, updatedAt };
+}
+
+function safeUserSummary(user) {
+  return { id: user.id, name: user.name };
+}
+
+function safeMatch(match) {
+  if (!match) return null;
+  const { id, homeTeam, awayTeam, kickoffAt, venue, status, stage, group, result, apiResult } = match;
+  return { id, homeTeam, awayTeam, kickoffAt, venue, status, stage, group, result, apiResult };
+}
+
+function safeExchangeRate(rate) {
+  if (!rate) return null;
+  const { rate: value, source, fetchedAt, date, status, cached } = rate;
+  return { rate: value, source, fetchedAt, date, status, cached };
+}
+
+function safePayment(payment) {
+  if (!payment) return null;
+  const {
+    id,
+    predictionId,
+    matchId,
+    userId,
+    currency,
+    amountMinor,
+    copEquivalent,
+    baseContributionCop,
+    basePotContributionCop,
+    excessContributionCop,
+    exchangeExcess,
+    actualCopReceived,
+    exchangeRateSource,
+    exchangeRateDate,
+    exchangeRateUsdCop,
+    rateLockedAt,
+    method,
+    userComment,
+    paidStatus,
+    verificationStatus,
+    paidAt,
+    verifiedAt,
+    rejectedAt,
+  } = payment;
+  return {
+    id,
+    predictionId,
+    matchId,
+    userId,
+    currency,
+    amountMinor,
+    copEquivalent,
+    baseContributionCop,
+    basePotContributionCop,
+    excessContributionCop,
+    exchangeExcess,
+    actualCopReceived,
+    exchangeRateSource,
+    exchangeRateDate,
+    exchangeRateUsdCop,
+    rateLockedAt,
+    method,
+    userComment,
+    paidStatus,
+    verificationStatus,
+    paidAt,
+    verifiedAt,
+    rejectedAt,
+  };
+}
+
+function safePayout(payout) {
+  const { id, userId, matchId, predictionId, prizeType, amountCop, status, createdAt, approvedAt, paidAt } = payout;
+  return { id, userId, matchId, predictionId, prizeType, amountCop, status, createdAt, approvedAt, paidAt };
+}
+
+function safeSettlement(settlement, currentUser = null) {
+  return {
+    matchId: settlement.matchId,
+    paidCount: settlement.paidCount,
+    basePotCop: settlement.basePotCop,
+    usdExcessCop: settlement.usdExcessCop,
+    topScore: settlement.topScore,
+    refundStatus: settlement.refundStatus,
+    winners: (settlement.winners || []).map(({ userId, predictionId, points, basePayoutCop, bonusPayoutCop, totalPayoutCop }) => ({
+      userId,
+      predictionId,
+      points,
+      basePayoutCop,
+      bonusPayoutCop,
+      totalPayoutCop,
+    })),
+    refunds: (settlement.refunds || [])
+      .filter((refund) => currentUser && refund.userId === currentUser.id)
+      .map(({ userId, predictionId, refundCop, reason }) => ({ userId, predictionId, refundCop, reason })),
+  };
+}
+
+function safePredictionRow(prediction) {
+  const { id, userId, userName, matchId, match, homeScore, awayScore, createdAt, updatedAt, points, locked } = prediction;
+  return { id, userId, userName, matchId, match: safeMatch(match), homeScore, awayScore, createdAt, updatedAt, points, locked };
+}
+
+function buildStateContext(db) {
   const standings = calculateStandings(db.users, db.matches, db.predictions, db.payments);
   const prizeSummary = calculatePrizeSummary({ predictions: db.predictions, payments: db.payments });
   const tournamentBonus = calculateTournamentBonus(db.users, db.matches, db.predictions, db.payments);
@@ -617,25 +737,78 @@ function statePayload(db, currentUser = null) {
     resultStatus: prediction.match?.result?.status || "PENDING",
     points: prediction.points,
   }));
+  return { standings, prizeSummary, tournamentBonus, settlements, nextMatches, payouts, predictionRows, adminPredictions };
+}
 
+function serializePublicState(db, context) {
+  return {
+    settings: publicSettings(db.settings),
+    currentUser: null,
+    users: [],
+    matches: db.matches.map(safeMatch),
+    nextMatches: context.nextMatches.map(safeMatch),
+    predictions: [],
+    adminPredictions: [],
+    payments: [],
+    payouts: [],
+    auditLogs: [],
+    matchDay: null,
+    standings: [],
+    prizeSummary: { verifiedEntries: 0, basePotCop: 0, usdExchangeExcessCop: 0, totalPendingCop: 0 },
+    tournamentBonus: { bonusPotCop: 0, mostCorrectPredictions: 0, winners: [] },
+    settlements: [],
+    exchangeRate: null,
+    deployment: null,
+    storage: null,
+    sportsSync: null,
+    sportsVerification: null,
+  };
+}
+
+function serializeUserState(db, currentUser, context) {
+  return {
+    settings: publicSettings(db.settings),
+    currentUser: safeCurrentUser(currentUser),
+    users: db.users.filter((user) => user.role === "USER").map(safeUserSummary),
+    matches: db.matches.map(safeMatch),
+    nextMatches: context.nextMatches.map(safeMatch),
+    predictions: context.predictionRows.map(safePredictionRow),
+    adminPredictions: [],
+    payments: db.payments.filter((payment) => payment.userId === currentUser.id).map(safePayment),
+    payouts: context.payouts.filter((payout) => payout.userId === currentUser.id).map(safePayout),
+    auditLogs: [],
+    matchDay: null,
+    standings: context.standings,
+    prizeSummary: context.prizeSummary,
+    tournamentBonus: context.tournamentBonus,
+    settlements: context.settlements.map((settlement) => safeSettlement(settlement, currentUser)),
+    exchangeRate: safeExchangeRate(db.exchangeRate),
+    deployment: null,
+    storage: null,
+    sportsSync: null,
+    sportsVerification: null,
+  };
+}
+
+function serializeAdminState(db, currentUser, context) {
   return {
     settings: db.settings,
     currentUser: publicUser(currentUser),
     users: db.users.map(publicUser),
     matches: db.matches,
-    nextMatches,
-    predictions: predictionRows,
-    adminPredictions,
+    nextMatches: context.nextMatches,
+    predictions: context.predictionRows,
+    adminPredictions: context.adminPredictions,
     payments: db.payments,
-    payouts: currentUser?.role === "ADMIN" ? payouts : payouts.filter((payout) => payout.userId === currentUser?.id),
-    auditLogs: currentUser?.role === "ADMIN" ? (db.auditLogs || []).slice(-200).reverse() : [],
-    matchDay: currentUser?.role === "ADMIN" ? matchDaySummary(db) : null,
-    standings,
-    prizeSummary,
-    tournamentBonus,
-    settlements,
+    payouts: context.payouts,
+    auditLogs: (db.auditLogs || []).slice(-200).reverse(),
+    matchDay: matchDaySummary(db),
+    standings: context.standings,
+    prizeSummary: context.prizeSummary,
+    tournamentBonus: context.tournamentBonus,
+    settlements: context.settlements,
     exchangeRate: db.exchangeRate,
-    deployment: currentUser?.role === "ADMIN" ? deploymentMetadata() : null,
+    deployment: deploymentMetadata(),
     storage: {
       driver: appStorage.driver,
       label: appStorage.label,
@@ -648,6 +821,13 @@ function statePayload(db, currentUser = null) {
     sportsSync: sportsProvider.getLastSyncStatus(db.sportsSync),
     sportsVerification: sportsProvider.getVerificationStatus({ matches: db.matches, syncStatus: db.sportsSync }),
   };
+}
+
+export function statePayload(db, currentUser = null) {
+  const context = buildStateContext(db);
+  if (currentUser?.role === "ADMIN") return serializeAdminState(db, currentUser, context);
+  if (currentUser) return serializeUserState(db, currentUser, context);
+  return serializePublicState(db, context);
 }
 
 function buildWhatsappMessage(db, type, language, matchId) {

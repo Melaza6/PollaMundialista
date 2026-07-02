@@ -853,7 +853,7 @@ function renderPredictionTable(match) {
         <tbody>
           ${rows
             .map((prediction) => {
-              const payment = prediction.payment;
+              const payment = paymentForPrediction(prediction.id);
               return `<tr>
                 <td data-label="${t("participants")}">${escapeHtml(prediction.userName)}</td>
                 <td data-label="${t("score")}">${prediction.homeScore}-${prediction.awayScore}</td>

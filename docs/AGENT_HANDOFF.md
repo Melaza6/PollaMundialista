@@ -878,3 +878,54 @@ pnpm db:check
 ### Recommended next agent
 - `.agents/security-auth-review.md` for `security/scope-public-state`.
 - Then `.agents/launch-deployment.md` and `.agents/qa-test-engineer.md` for live readiness and mobile smoke.
+
+## 2026-07-01 P0 `/api/state` server-side scoping
+
+### Summary
+- Branch: `security/scope-public-state`.
+- Addressed the P0 audit item by splitting `/api/state` into explicit public, regular-user, and admin serializers.
+- Anonymous state now returns public-safe bootstrap data only: safe settings, safe matches, and empty sensitive collections for client shape compatibility.
+- Regular user state now returns safe matches, all public-safe predictions, safe display users, standings, safe settlement summaries, the current user's safe session/profile fields, and only the current user's own payment/payout records.
+- Admin state preserves the full admin dashboard payload after server-side admin role/session verification.
+- Updated the predictions table to read payment status from scoped `state.payments` instead of embedded `prediction.payment`.
+
+### Files changed
+- `server.js`
+- `public/app.js`
+- `test/settlement.test.js`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- Added serializer regression tests for anonymous state excluding users, phones, payments, payouts/refunds, audit logs, diagnostics, admin config, and env-like values.
+- Added regular-user state tests proving all predictions remain visible while other users' phone/payment/admin data and diagnostics stay hidden.
+- Added admin state test proving admin users still receive users, phones, payments, admin prediction rows, audit logs, storage, sports diagnostics, deployment, and match-day data.
+- Updated source-level diagnostics test for the new serializer boundary and for the client-side `paymentForPrediction(prediction.id)` lookup.
+
+### Verification
+```bash
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+node --check test/settlement.test.js
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+```
+
+### Result
+- Node syntax checks passed.
+- `pnpm install --frozen-lockfile`: passed; lifecycle tests passed 54/54.
+- `pnpm build`: passed; tests passed 54/54 inside build.
+- `pnpm test`: passed 54/54.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed 54/54.
+- `pnpm db:check`: skipped because Supabase env vars were not available in this shell.
+- Local warning remains: current Node is `v24.14.0`; project engines want Node `22.x`.
+
+### Remaining risks
+- Re-run production smoke after deploy to confirm live `/api/state` has the scoped response shape.
+- Live mobile/browser QA and production readiness checks remain separate launch gates.
+
+### Recommended next agent
+- `.agents/launch-deployment.md` and `.agents/qa-test-engineer.md` for post-deploy live smoke.
