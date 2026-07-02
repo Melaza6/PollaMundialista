@@ -1,14 +1,10 @@
-# World Cup Family Pool App / App Familiar de Polla Mundial
-
-Private, family-friendly single-match exact-score pool for the FIFA World Cup.
-
-App privada y familiar para apostar solo al marcador exacto de un partido del Mundial.
+# Polla Mundialista 2026
 
 Production domain / Dominio de produccion: `https://polla.melazausa.com`
 
 Workspace / Carpeta de trabajo: `C:\Users\Owner\Documents\Melaza Ecosystem\Polla mundial`
 
-Ecosystem positioning:
+## Ecosystem Position
 
 Polla Mundialista is a standalone Melaza ecosystem product app managed through Melaza Network.
 
@@ -18,721 +14,307 @@ Polla Mundialista is a standalone Melaza ecosystem product app managed through M
 
 Polla Mundialista sits alongside MLP and MN at the ecosystem level. Melaza Network manages and tracks Polla Mundialista as an app record, but Polla Mundialista is not structurally part of MN.
 
-> Important: this should be positioned as a private family pool, not a public gambling platform. Keep access invite-only, avoid house profit, avoid minors participating with money, and confirm local rules before collecting or paying real money.
->
-> Importante: esto debe manejarse como una polla privada familiar, no como una plataforma publica de apuestas. Mantener acceso por invitacion, sin ganancia para la casa, sin menores participando con dinero, y revisar las reglas locales antes de recolectar o pagar dinero real.
+## Product Summary
 
-## 1. Product Summary / Resumen
+Polla Mundialista 2026 is a bilingual Spanish/English family World Cup prediction pool app.
 
-The app lets family members join one selected World Cup match, predict the exact score, pay a fixed entry in COP or USD, and see the result settle automatically after the match ends.
+Regular users register or log in with:
 
-La app permite que la familia entre a un solo partido seleccionado del Mundial, prediga el marcador exacto, pague una entrada fija en COP o USD, y vea el resultado liquidado automaticamente cuando termine el partido.
+- full name
+- phone number
 
-Fixed entry amount:
+No email login, Google login, or Gmail login is used.
 
-- 2,000 COP
-- 1 USD
+Users submit exact-score predictions for World Cup matches, choose a participation currency, add an optional payment comment, view everyone's submitted predictions, and follow the standings.
 
-Core product rules:
+Admin manually confirms payment status, syncs provider-backed match results, reviews payouts/refunds, exports backups, and keeps audit records for sensitive actions.
 
-- One active match only.
-- Exact-score predictions only.
-- Invite-only family access.
-- Bilingual UI: Spanish and English.
-- Fair payout accounting: every player contributes 2,000 COP to the main pot, even if they pay 1 USD.
-- USD exchange-rate excess becomes a separate final-tournament bonus for the user with the most exact-score points; ties split whole COP pesos deterministically.
-- In-app payment flow for COP and USD entries.
-- Automatic score/result sync through a football results API.
-- WhatsApp family group sharing for reminders, links, results, and winners.
-- Manual admin override in case the API is delayed or incorrect.
-- No complex odds, casino mechanics, ads, public betting, credit, or debt.
+## Manual Money-Movement Boundary
 
-## 2. Example Match Flow / Flujo
+The app records manual payment, payout, and refund status only.
 
-```text
-Admin creates pool / Admin crea la polla
-  -> Selects World Cup match / Selecciona el partido
-  -> Entry is fixed: 2,000 COP or 1 USD
-  -> Shares invite link to family WhatsApp group
+- The app does not process payments.
+- The app does not move money.
+- The app does not send automatic payouts.
+- Admin manually confirms payments.
+- Admin manually marks payouts/refunds.
+- Payment and payout records are admin-tracked ledger/status records.
 
-Family member joins / Familiar entra
-  -> Enters name / Ingresa nombre
-  -> Predicts exact score only / Predice solo marcador exacto
-  -> Chooses COP or USD / Escoge COP o USD
-  -> Pays in the app / Paga dentro de la app
+Preferred wording:
 
-Match is played / Se juega el partido
-  -> API sync checks fixture status and final score
-  -> App calculates exact-score winners
-  -> App prepares WhatsApp group message
-  -> Family sees final result, winners, and payout summary
-```
+- manual payment confirmation
+- manual payout tracking
+- manual refund tracking
+- admin-recorded payment status
+- admin-recorded payout/refund status
 
-## 3. Core Screens / Pantallas
+## Participation Amounts
 
-### Home / Inicio
+Fixed participation amounts:
 
-Shows the active match and pool status.
+- COP: 2,000 COP
+- USD: 1 USD
 
-```text
-Polla Mundial Familiar
-Family World Cup Pool
+Every verified participation contributes exactly 2,000 COP to the base match pot.
 
-Mexico vs South Africa
-June 11, 2026 - Mexico City Stadium
+## Prediction Rules
 
-Cierra en / Closes in: 02:14:33
-Entrada / Entry: 2,000 COP or 1 USD
-Participantes / Family joined: 12
-Bolsa base / Base pot: 24,000 COP
-Bono USD / USD excess bonus: 6,000 COP
-
-[Entrar / Join]
-[Ver Marcadores / View Predictions]
-[Compartir por WhatsApp / Share on WhatsApp]
-```
-
-### Join Pool / Entrar
-
-```text
-Nombre / Your name
-[________________]
-
-Marcador exacto / Exact score
-Mexico [ 2 ] - [ 1 ] South Africa
-
-Moneda / Currency
-[COP] [USD]
-
-Entrada / Entry amount
-2,000 COP
-
-Metodo de pago / Payment method
-[Tarjeta / Card] [Nequi] [Zelle] [PSE]
-
-[Confirmar marcador / Confirm My Score]
-
-Pago en la app / In-app payment
-2,000 COP
-
-[Pagar ahora / Pay now]
-[Cancelar / Cancel]
-```
-
-### Family Predictions / Marcadores Familiares
-
-```text
-Marcadores Familiares / Family Predictions
-
-Ana       Mexico 2-1 South Africa    Pagado / Paid
-Carlos    Mexico 1-1 South Africa    Pagado / Paid
-Mama      Mexico 2-0 South Africa    Pendiente / Pending
-Diego     Mexico 0-1 South Africa    Pagado / Paid
-```
-
-Before kickoff, optionally hide exact picks to keep it fair.
-
-Antes del inicio, se pueden ocultar los marcadores para mantenerlo justo.
-
-### Result / Resultado
-
-```text
-Resultado Final / Final Result
-Mexico 2 - 0 South Africa
-
-Ganadores / Winners
-Mama
-
-Bolsa / Pot
-Total collected: 24,000 COP + 3 USD
-Base pot: 24,000 COP
-USD excess bonus: 6,000 COP
-Winner payout: 24,000 COP
-Bonus payout: 6,000 COP
-
-[Marcar como pagado / Mark as Paid]
-[Enviar al WhatsApp / Send to WhatsApp]
-[Exportar / Export]
-```
-
-## 4. Prediction Rules / Reglas
-
-Only exact-score predictions are allowed.
-
-Solo se permiten predicciones de marcador exacto.
-
-Scoring:
+Only exact-score predictions earn points.
 
 | Prediction / Prediccion | Points / Puntos |
-|---|---:|
+| --- | ---: |
 | Exact score / Marcador exacto | 1 |
 | Correct winner only / Ganador correcto solamente | 0 |
 | Incorrect result / Resultado incorrecto | 0 |
 
-Example:
+Users can create or update only their own prediction.
 
-- Final score: Mexico 2-0 South Africa.
-- Ana picked 2-0: 1 point.
-- Carlos picked 1-0: 0 points.
-- Diego picked 0-1: 0 points.
+Prediction locks:
 
-Exact-score winner(s) split that match pot. If nobody has the exact score, verified participants for that match get manual refund ledger records.
+- User prediction lock: 15 minutes before kickoff.
+- Admin emergency correction lock: 5 minutes before kickoff.
+- Admin emergency corrections require a reason and audit log.
+- After the admin lock, nobody can change predictions.
 
-Quien(es) acierten el marcador exacto dividen el pozo de ese partido. Si nadie acierta, se crean registros de reembolso manual para los participantes verificados de ese partido.
+Prediction ownership uses `userId`, not user name.
 
-USD excess rule:
+## Pot and Bonus Rules
 
-- Every paid entry contributes exactly 2,000 COP to the base pot.
-- If someone pays 1 USD, the app converts that payment to COP using the locked exchange rate.
-- Any value above 2,000 COP is not added to the main pot.
-- That excess becomes a separate USD bonus.
-- The bonus goes only to the final tournament winner: the family member with the most exact-score points at the end of the tournament.
-- If there is a tie for most exact-score points, the bonus is split in whole COP pesos among those tied users, with leftover pesos assigned deterministically by user ID.
-- Match winners never receive the USD exchange bonus as part of a match pot.
-- No-exact-winner match refunds include only the match base-pot contribution, not the USD exchange bonus.
+Core rules:
 
-Regla del exceso en USD:
+- COP participation contributes 2,000 COP to the base match pot.
+- COP participation creates 0 exchange-rate bonus.
+- USD participation contributes 2,000 COP to the base match pot.
+- USD exchange-rate excess may create a separate exchange-rate bonus.
+- The exchange-rate bonus is never mixed into base match pots.
+- Match winners receive only the base match pot for that match.
+- If no exact-score winner exists for a final match, verified participants get manual refund ledger records for that match's base-pot contribution.
+- The final tournament bonus goes to the user or users with the most exact-score points at the end of the tournament.
+- Tied final tournament bonus recipients split whole COP pesos deterministically.
 
-- Cada entrada pagada aporta exactamente 2,000 COP a la bolsa base.
-- Si alguien paga 1 USD, la app convierte ese pago a COP usando la tasa guardada.
-- Cualquier valor por encima de 2,000 COP no se suma a la bolsa principal.
-- Ese exceso se convierte en un bono separado.
-- El bono va solo para el ganador final del torneo: el familiar con mas puntos por marcadores exactos al final del torneo.
-- Si hay empate en puntos por marcadores exactos, el bono se divide en pesos colombianos enteros entre esos usuarios, con sobrantes asignados de forma deterministica por ID de usuario.
-- Los ganadores de partidos no reciben el bono USD como parte del pozo del partido.
-- Los reembolsos de partidos sin marcador exacto incluyen solo el aporte base del partido, no el bono USD.
+For COP:
 
-## 5. Currency Handling / Monedas
-
-Supported currencies:
-
-- COP
-- USD
-
-Fixed entry:
-
-| Currency | Entry |
-|---|---:|
-| COP | 2,000 COP |
-| USD | 1 USD |
-
-Recommended behavior:
-
-- Store all monetary values as integer minor units.
-- COP uses whole pesos.
-- USD uses cents.
-- Save the exchange rate used when each person joins.
-- Show original currency, base-pot contribution, and USD excess bonus.
-- Do not silently recalculate old entries if the exchange rate changes.
-- For payout fairness, count each paid entry as 2,000 COP toward the base pot.
-- For USD payments, calculate excess as `max(copEquivalent - 2000, 0)`.
-
-Example:
-
-```json
-{
-  "currency": "USD",
-  "amountMinor": 100,
-  "fxRateToCop": 4000,
-  "copEquivalent": 4000,
-  "baseContributionCop": 2000,
-  "excessContributionCop": 2000,
-  "fxLockedAt": "2026-06-10T14:00:00Z"
-}
+```txt
+basePotContributionCop = 2000
+exchangeExcess = 0
+actualCopReceived = 2000
 ```
 
-## 6. Results API / API de Resultados
+For USD:
 
-Recommended providers to evaluate:
-
-- [football-data.org](https://www.football-data.org/documentation/quickstart): documented v4 API with match resources and filters.
-- [API-Football](https://www.api-football.com/documentation-v3): broad football coverage, fixtures, scores, and live match data.
-- [TheSportsDB](https://www.thesportsdb.com/free_sports_api): simpler sports API option, useful for prototypes.
-
-Recommended sync:
-
-```text
-Every 5 minutes before kickoff:
-  Sync fixture date, teams, venue, and status.
-
-Every 1 minute during match:
-  Sync live score and status.
-
-Every 2 minutes after expected full time:
-  Check for final status.
-
-When status = FINISHED / Match Finished:
-  Lock final score.
-  Calculate exact-score points.
-  Prepare WhatsApp group result message.
+```txt
+basePotContributionCop = 2000
+actualCopReceived = adminProvidedActualCopReceived || lockedValidUsdCopRate
+exchangeExcess = Math.max(0, actualCopReceived - 2000)
 ```
 
-Admin override:
+## Exchange-Rate Rules
 
-```text
-Admin -> Match -> Edit Final Score -> Confirm Settlement
+The USD/COP rate shown to users is an estimate.
+
+Admin confirms the actual COP received for USD participation and the rate/value is locked when admin verifies the payment.
+
+Verified USD payment values do not recalculate when the live rate changes.
+
+Valid USD/COP rates must be numeric and between:
+
+```txt
+1000 and 10000
 ```
 
-This avoids family drama if the API is late, has extra-time differences, or changes result status after review.
+Correct parsing examples:
 
-## 7. In-App Payments / Pagos en la App
-
-The app includes a payment-session flow:
-
-```text
-1. Family member submits exact score.
-2. App creates a payment session for 2,000 COP or 1 USD.
-3. Member confirms payment inside the app.
-4. Bet becomes PAID.
-5. Only PAID bets count toward settlement.
+```txt
+"3.425,95" -> 3425.95
+"3425,95" -> 3425.95
+"3,425.95" -> 3425.95
+"3425.95" -> 3425.95
+3425.95 -> 3425.95
 ```
 
-Current local implementation:
+The app must reject impossible values such as:
 
-- Uses a demo in-app payment provider.
-- Supports the same UX shape as a real checkout.
-- Stores payment records, status, method, amount, provider, and completion time.
-- Lets pending users return and pay later.
-
-Production provider options to evaluate:
-
-- Wompi or Mercado Pago for Colombia-friendly COP payments.
-- Stripe or PayPal for USD card payments where available.
-- Manual Nequi/Zelle confirmation as a fallback if API access is not available.
-
-Important production notes:
-
-- Never store raw card details in this app.
-- Use hosted checkout or tokenized payment provider components.
-- Keep provider secret keys on the server only.
-- Verify payment webhooks before marking a bet as paid.
-- Keep the fixed payout rule: every paid user counts as 2,000 COP in the base pot; USD excess goes to the bonus.
-
-Suggested payment statuses:
-
-```text
-PENDING -> REQUIRES_CONFIRMATION -> PAID
-PENDING -> REQUIRES_CONFIRMATION -> CANCELLED
-PAID -> REFUNDED
+```txt
+342,595 COP
+342595
 ```
 
-## 8. WhatsApp Group Messaging / Mensajes a WhatsApp
+## Core Screens
 
-Goal: send updates to the family WhatsApp group chat.
+### Regular User
 
-Objetivo: enviar actualizaciones al grupo familiar de WhatsApp.
+Spanish navigation:
 
-Practical implementation options:
-
-1. MVP recommended: generate a WhatsApp share link/message that the admin sends to the group.
-2. Semi-automated: app prepares the message, admin taps "Send to WhatsApp", selects the family group, and sends.
-3. Fully automated: only use if a compliant provider supports the exact group workflow you need. Official WhatsApp Business APIs are generally designed for business-to-user messaging with opted-in individual recipients, so direct automated group-chat posting should be validated before building around it.
-
-WhatsApp messages to generate:
-
-### Pool Created
-
-```text
-Polla Mundial Familiar
-
-Partido: Mexico vs South Africa
-Entrada: 2,000 COP o 1 USD
-Prediccion: marcador exacto
-Cierre: antes del inicio del partido
-
-Entra aqui:
-https://polla.melazausa.com/?invite=FAMILIA2026
+```txt
+Inicio
+Partidos
+Predicciones
+Tabla
+Reglas
 ```
 
-### Reminder
+English navigation:
 
-```text
-Recordatorio: la polla cierra pronto.
-
-Mexico vs South Africa
-Entrada: 2,000 COP o 1 USD
-Solo marcador exacto.
-
-Link:
-https://polla.melazausa.com/?invite=FAMILIA2026
+```txt
+Home
+Matches
+Predictions
+Standings
+Rules
 ```
 
-### Final Result
+Regular users should quickly answer:
 
-```text
-Resultado final:
-Mexico 2 - 0 South Africa
+- What match is next?
+- Did I predict?
+- Did I pay?
+- What did everyone predict?
+- Where am I in the standings?
+- What are the rules?
 
-Ganadores:
-Mama
+Regular users should not see:
 
-Bolsa total:
-Bolsa base: 24,000 COP
-Bono USD: 6,000 COP
-```
-
-## 9. Bilingual UX / Experiencia Bilingue
-
-The app should support Spanish and English from the first version.
-
-La app debe soportar espanol e ingles desde la primera version.
-
-Recommended language behavior:
-
-- Default language: Spanish.
-- User can switch to English.
-- Store language preference per browser or user.
-- Use short paired labels where helpful: `Entrar / Join`.
-- Keep WhatsApp messages in Spanish by default, with optional English version.
-
-Example translation keys:
-
-```json
-{
-  "pool.title": {
-    "es": "Polla Mundial Familiar",
-    "en": "Family World Cup Pool"
-  },
-  "entry.amount": {
-    "es": "Entrada: 2,000 COP o 1 USD",
-    "en": "Entry: 2,000 COP or 1 USD"
-  },
-  "prediction.exactScore": {
-    "es": "Marcador exacto",
-    "en": "Exact score"
-  },
-  "actions.join": {
-    "es": "Entrar",
-    "en": "Join"
-  }
-}
-```
-
-## 10. App Architecture / Arquitectura
-
-Recommended stack:
-
-- Frontend: Next.js or React
-- Backend API: Next.js API routes, Express, or Fastify
-- Database: PostgreSQL
-- ORM: Prisma
-- Auth: invite code plus optional PIN
-- Jobs: background scheduler for result sync
-- Payments: demo in-app provider for MVP; hosted checkout provider in production
-- Messaging: WhatsApp share links for MVP, provider integration later if validated
-- Hosting: Netlify, Vercel, Render, Railway, or a small VPS
-
-High-level architecture:
-
-```mermaid
-flowchart LR
-  User["Family Member"] --> Web["Web App"]
-  Admin["Admin"] --> Web
-  Web --> API["App API"]
-  API --> DB["PostgreSQL"]
-  API --> Results["Football Results API"]
-  Worker["Sync Worker"] --> Results
-  Worker --> DB
-  API --> Payments["Payment Provider"]
-  API --> WhatsApp["WhatsApp Message Generator"]
-```
-
-## 11. Data Model / Modelo de Datos
-
-```prisma
-model User {
-  id          String   @id @default(cuid())
-  name        String
-  phone       String?
-  language    Language @default(ES)
-  role        Role     @default(MEMBER)
-  createdAt   DateTime @default(now())
-  bets        Bet[]
-}
-
-model Pool {
-  id              String     @id @default(cuid())
-  title           String
-  inviteCode      String     @unique
-  status          PoolStatus @default(OPEN)
-  entryCopMinor   Int        @default(2000)
-  entryUsdMinor   Int        @default(100)
-  closeAt         DateTime
-  createdAt       DateTime   @default(now())
-  match           Match?
-  bets            Bet[]
-  payments        Payment[]
-}
-
-model Match {
-  id              String      @id @default(cuid())
-  poolId          String      @unique
-  provider        String
-  providerMatchId String
-  homeTeam        String
-  awayTeam        String
-  kickoffAt       DateTime
-  venue           String?
-  status          MatchStatus @default(SCHEDULED)
-  homeScore       Int?
-  awayScore       Int?
-  finalAt         DateTime?
-  pool            Pool        @relation(fields: [poolId], references: [id])
-}
-
-model Bet {
-  id             String        @id @default(cuid())
-  poolId         String
-  userId         String
-  homeScorePick  Int
-  awayScorePick  Int
-  currency       Currency
-  amountMinor    Int
-  fxRateToCop    Decimal?
-  copEquivalent  Int
-  baseContributionCop Int     @default(2000)
-  excessContributionCop Int   @default(0)
-  paymentProvider String?
-  paymentId       String?
-  paymentStatus  PaymentStatus @default(PENDING)
-  paidAt         DateTime?
-  points         Int?
-  isWinner       Boolean       @default(false)
-  isBonusWinner  Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  pool           Pool          @relation(fields: [poolId], references: [id])
-  user           User          @relation(fields: [userId], references: [id])
-}
-
-model Payment {
-  id            String        @id @default(cuid())
-  poolId        String
-  betId         String
-  provider      String
-  method        String
-  status        PaymentStatus @default(PENDING)
-  currency      Currency
-  amountMinor   Int
-  displayAmount String
-  createdAt     DateTime      @default(now())
-  completedAt   DateTime?
-}
-
-model WhatsAppMessage {
-  id          String   @id @default(cuid())
-  poolId      String
-  type        MessageType
-  language    Language
-  body        String
-  sentByAdmin Boolean  @default(false)
-  createdAt   DateTime @default(now())
-}
-
-enum Role {
-  ADMIN
-  MEMBER
-}
-
-enum Language {
-  ES
-  EN
-}
-
-enum Currency {
-  COP
-  USD
-}
-
-enum PoolStatus {
-  OPEN
-  LOCKED
-  SETTLED
-  CANCELLED
-}
-
-enum MatchStatus {
-  SCHEDULED
-  LIVE
-  FINISHED
-  POSTPONED
-  CANCELLED
-}
-
-enum PaymentStatus {
-  PENDING
-  REQUIRES_CONFIRMATION
-  PAID
-  CANCELLED
-  REFUNDED
-}
-
-enum MessageType {
-  POOL_CREATED
-  REMINDER
-  MATCH_STARTED
-  RESULT
-  SETTLEMENT
-}
-```
-
-## 12. API Endpoints
-
-### Public / Family
-
-```http
-GET    /api/pools/:inviteCode
-POST   /api/pools/:poolId/join
-POST   /api/payments/:betId/create
-POST   /api/payments/:betId/confirm
-POST   /api/payments/:betId/cancel
-GET    /api/pools/:poolId/bets
-GET    /api/pools/:poolId/result
-GET    /api/i18n/:language
-```
+- API diagnostics
+- storage mode
+- audit logs
+- export tools
+- admin payout tools
+- raw sync errors
+- Supabase/JSON warnings
 
 ### Admin
 
-```http
-POST   /api/admin/pools
-PATCH  /api/admin/pools/:poolId
-POST   /api/admin/pools/:poolId/lock
-POST   /api/admin/pools/:poolId/sync-result
-POST   /api/admin/pools/:poolId/settle
-PATCH  /api/admin/bets/:betId/payment
-POST   /api/admin/pools/:poolId/whatsapp-message
+Spanish admin tabs:
+
+```txt
+Dia de partido
+Predicciones
+Pagos
+Resultados
+Premios
+Reglas
+Herramientas
 ```
 
-### Example Join Request
+English admin tabs:
 
-```json
-{
-  "name": "Ana",
-  "homeScorePick": 2,
-  "awayScorePick": 1,
-  "currency": "COP",
-  "amountMinor": 2000,
-  "paymentMethod": "CARD",
-  "language": "ES"
-}
+```txt
+Match Day
+Predictions
+Payments
+Results
+Prizes
+Rules
+Tools
 ```
 
-## 13. Settlement Logic / Liquidacion
+Admin should quickly answer:
 
-```ts
-function scoreBet(bet, finalHome, finalAway) {
-  const pickedHome = bet.homeScorePick;
-  const pickedAway = bet.awayScorePick;
+- Who has not predicted?
+- Who has not paid?
+- What games are next?
+- What results just came in?
+- Who won the last prediction?
+- What WhatsApp message should I send?
+- Can I export a backup?
 
-  if (pickedHome === finalHome && pickedAway === finalAway) return 5;
+Advanced diagnostics and export tools belong under Tools/Herramientas.
 
-  const finalResult =
-    finalHome > finalAway ? "HOME" :
-    finalHome < finalAway ? "AWAY" :
-    "DRAW";
+## Sports Data
 
-  const pickedResult =
-    pickedHome > pickedAway ? "HOME" :
-    pickedHome < pickedAway ? "AWAY" :
-    "DRAW";
+World Cup match data is provider-backed.
 
-  return finalResult === pickedResult ? 2 : 0;
-}
+Supported providers:
 
-function calculateMoneySplit(paidBets) {
-  const basePotCop = paidBets.reduce(
-    (sum, bet) => sum + bet.baseContributionCop,
-    0
-  );
+- API-Football
+- football-data.org fallback
 
-  const usdExcessBonusCop = paidBets.reduce(
-    (sum, bet) => sum + bet.excessContributionCop,
-    0
-  );
+Rules:
 
-  return { basePotCop, usdExcessBonusCop };
-}
+- `FOOTBALL_API_PROVIDER=auto` should continue working.
+- API keys come from environment variables.
+- UI calls internal app endpoints only.
+- User dashboard shows the next 4 upcoming matches.
+- Result sync focuses on the last 3 completed fixtures where practical.
+- The app does not fake real results.
+- Provider errors are admin-visible and user-safe.
+
+## Storage
+
+Production should use Supabase.
+
+Local development may use JSON fallback.
+
+Storage modes:
+
+```env
+DATA_STORAGE_DRIVER=supabase
+DATA_STORAGE_DRIVER=json
 ```
 
-Settlement steps:
+Rules:
 
-```text
-1. Confirm match status is final.
-2. Lock pool if not already locked.
-3. Score all paid bets.
-4. Find highest score.
-5. Mark exact-score predictors as match-pot winners.
-6. Split only that match base pot among exact-score winners.
-7. If there is no exact-score winner, create manual refund ledger records for verified match participants using only base-pot contributions.
-8. Calculate USD excess bonus from verified USD payments only.
-9. Keep the USD excess bonus separate from match pots and refunds.
-10. At the end of the tournament, give the USD excess bonus to the user(s) with the most exact-score points.
-11. If the final tournament winner is tied, split the USD excess bonus in whole COP pesos deterministically.
-12. Generate WhatsApp result message.
-13. Show payout summary with match pot, manual refunds, and separate USD bonus.
-```
+- `SUPABASE_SERVICE_ROLE_KEY` is backend-only.
+- Browser code must not receive the service-role key.
+- `.env` must never be committed.
+- `.env.example` must contain placeholders only.
+- If production uses JSON storage, show a warning.
+- If Supabase mode is selected and env vars are missing, fail clearly or return safe JSON errors.
 
-## 14. Family-Friendly Guardrails
+## Audit Logs
 
-- Invite-only access.
-- Exact score only.
-- Fixed low entry: 2,000 COP or 1 USD.
-- In-app payment required before a bet counts in the payout.
-- No public betting or random users.
-- No credit, loans, debt, or negative balances.
-- No odds boosts, streak pressure, or manipulative notifications.
-- Clear "for family fun" copy in Spanish and English.
-- Admin can cancel and refund pool.
-- Hide picks until kickoff if desired.
-- Require payment confirmation before settlement.
-- Keep a visible audit log of edits, messages, payments, and overrides.
+Audit logs are required for sensitive actions:
 
-## 15. MVP Build Plan
+- user registration
+- user login
+- prediction created
+- prediction updated
+- admin emergency correction
+- payment marked pending
+- payment verified
+- payment rejected
+- actual COP received changed
+- exchange rate refreshed
+- invalid exchange rate rejected
+- results synced
+- payout calculated
+- payout approved
+- payout marked paid
+- export created
 
-### Phase 1: Working Private Pool
+Regular users must not access audit logs.
 
-- Create one pool.
-- Join with name and exact score.
-- Fixed COP/USD entry display.
-- Spanish and English labels.
-- Demo in-app payment checkout.
-- Manual final score.
-- Settlement summary.
-- WhatsApp share message generator.
+## WhatsApp Messages
 
-### Phase 2: API Integration
+The app may prepare WhatsApp copy for admin to share manually.
 
-- Connect football results provider.
-- Connect real payment provider and webhooks.
-- Sync selected fixture.
-- Auto-settle when final.
-- Generate final WhatsApp message.
-- Add admin override audit log.
+Messages should reinforce:
 
-### Phase 3: Polish
+- exact-score prediction deadline
+- manual payment confirmation
+- manual payout/refund tracking
+- base match pot and exchange-rate bonus separation
+- final result and standings updates
 
-- Invite links.
-- Mobile-friendly design.
-- Language switcher.
-- WhatsApp reminder templates.
-- Export CSV.
-- Simple family leaderboard.
+The app should not automate group-message delivery unless a future compliance review explicitly approves it.
 
-## 16. Acceptance Criteria
+## Acceptance Criteria
 
-The app is ready when:
+The app is ready for real family use when:
 
-- A family member can join from a phone in under 60 seconds.
-- The only prediction option is exact score.
-- Entry is fixed at 2,000 COP or 1 USD.
-- A member can pay inside the app after submitting a score.
-- Only paid bets count toward the settlement.
-- The UI supports Spanish and English.
-- The pool locks before kickoff.
-- COP and USD entries are shown clearly.
-- USD payments do not inflate the base pot; each player counts as 2,000 COP.
-- USD exchange-rate excess is tracked as a separate bonus and split on tied top scores.
-- Final score can come from API or admin override.
-- Winners and payout split are transparent.
-- The app generates WhatsApp group messages for invite, reminder, result, and settlement.
-- No one can edit predictions after lock.
-- The admin can export a full record of bets, payments, WhatsApp messages, and settlement.
+- users can log in with name + phone
+- no email/Google/Gmail login appears
+- users can see next 4 matches
+- users can submit one exact-score prediction per match
+- users can edit only their own prediction before lock
+- users can view everyone's submitted predictions
+- admin can manually confirm payment status
+- admin can manually mark payout/refund status
+- base match pot and exchange-rate bonus remain separate
+- provider-backed results sync safely
+- anonymous and regular-user state remain public-safe
+- admin-only routes remain server-side protected
+- production storage is safely confirmed
+- admin export backup is smoke-tested
+- real mobile/browser QA passes at 375px, 768px, and 1280px
+- production `ADMIN_PIN` is rotated after any chat exposure

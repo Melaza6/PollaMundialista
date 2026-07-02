@@ -63,7 +63,7 @@ Recommendation: treat the app as **ready with warnings**, not fully launch-ready
 
 ### Agent Supervisor
 
-The app scope is now coherent: private family prediction pool, not a public betting platform. The highest priority is keeping launch scope narrow while resolving data exposure, deployment readiness, live QA, and stale docs.
+The app scope is now coherent: private family prediction pool, not a public money-movement platform. The highest priority is keeping launch scope narrow while resolving data exposure, deployment readiness, live QA, and stale docs.
 
 ### Git Branch Hygiene Agent
 
@@ -83,7 +83,7 @@ Source includes mobile nav and responsive markers, but real browser QA at 375x81
 
 ### Bilingual Copy Review Agent
 
-Current UI has Spanish/English dictionaries and team-name translation helpers. However, project docs still contain stale terms such as in-app payment and betting-oriented language. Copy should consistently say prediction, participation, manual payment, manual payout, base pot, and exchange-rate bonus.
+Current UI has Spanish/English dictionaries and team-name translation helpers. Project docs now need to keep the same safe language consistently: prediction, participation, manual payment, manual payout, base pot, and exchange-rate bonus.
 
 ### World Cup Rules Scoring Agent
 
@@ -95,7 +95,7 @@ Base match pot and USD exchange-rate bonus are separated in the current rule hel
 
 ### Rules Compliance Risk Agent
 
-The current app boundary is safer than earlier docs: no automatic money movement. Risk remains if user-facing or documentation language suggests betting, checkout, automatic settlement, or public gambling. Phone-number exposure should also be minimized outside admin views.
+The current app boundary is safer than earlier docs: no automatic money movement. Risk remains if user-facing or documentation language suggests app-based money movement, automatic settlement, or public participation beyond the intended family/friend pool. Phone-number exposure should also be minimized outside admin views.
 
 ### Security Auth Review Agent
 
@@ -142,7 +142,7 @@ Important code comments exist around production credential fallback and Vercel/s
 | Security Auth Review | API state exposure | Scope `/api/state` by session role so unauthenticated/regular users do not receive admin prediction rows, payment admin data, storage diagnostics, or provider diagnostics. | Phone numbers, payment status/admin context, and diagnostics should not be public. | `security/scope-public-state` | Code, tests |
 | Launch Deployment | Production readiness | Re-run live `/api/live-readiness` after deploy and ensure `ADMIN_PIN`, `SESSION_SECRET`, Supabase, sports API, and domain are configured. | Admin auth and persistence must be production-safe before real users. | `deploy/live-readiness-smoke` | Config, tests/docs |
 | Database Supabase | Backup/export | Perform an admin export backup smoke test against production/preview and store the backup securely. | World Cup prediction/payment data must be recoverable. | `qa/admin-export-smoke` | Config, tests/docs |
-| Rules Compliance Risk | Stale payment docs | Remove or rewrite docs that say in-app payment, pay now, card/provider checkout, bet, or automatic settlement. | Conflicting docs can cause legal/payment trust confusion. | `docs/manual-payment-language-cleanup` | Docs |
+| Rules Compliance Risk | Stale payment docs | Keep docs aligned with manual payment confirmation, manual payout/refund tracking, and no app-based money movement. | Conflicting docs can cause legal/payment trust confusion. | `docs/manual-payment-language-cleanup` | Docs |
 
 ### P1 Important before wider use
 
@@ -220,7 +220,7 @@ Important code comments exist around production credential fallback and Vercel/s
 ## 10. Suggested Documentation Improvements
 
 - Rewrite `WORLD_CUP_FAMILY_POOL_APP.md` to match the current multi-match tournament product.
-- Remove stale references to in-app checkout, pay now, payment providers, automatic settlement, and betting-style language.
+- Keep stale payment-provider, checkout, app-based money movement, and automatic settlement language out of user-facing docs.
 - Add a one-page admin operating guide: before match day, during match day, after final result, refunds, payout approval, backup/export.
 - Add a production launch checklist that includes state scoping, env readiness, Supabase RLS, export backup, sports sync, mobile QA, and secret scan.
 - Document that USD exchange-rate bonus is final-tournament-only and provisional until tournament completion.
@@ -240,9 +240,31 @@ Important code comments exist around production credential fallback and Vercel/s
 
 1. **Secure state and admin boundaries.** Fix `/api/state` role scoping and add access-control tests.
 2. **Verify production readiness.** Re-run Vercel readiness, Supabase check, admin login, export backup, and mobile smoke.
-3. **Clean user-facing docs/copy.** Remove stale payment/betting wording and align all docs with manual payments/payouts.
+3. **Clean user-facing docs/copy.** Keep docs aligned with manual payments, manual payouts, and manual refund tracking.
 4. **Harden settlement operations.** Add tournament bonus finalization and clearer admin payout/refund workflow.
 5. **Broaden QA.** Add Playwright smoke for mobile and core user/admin flows.
 6. **Refactor carefully.** Extract state serializers and route groups once security tests are in place.
+
+## 13. P0 Closeout Update - 2026-07-02
+
+Branch: `p0/closeout-production-readiness`
+
+Completed:
+
+- `WORLD_CUP_FAMILY_POOL_APP.md` was rewritten to match the current manual-payment/manual-payout product boundary.
+- Anonymous production endpoint smoke passed again after the Melaza ecosystem workspace move.
+- `/api/live-readiness` returned `ready:true`.
+- Anonymous `/api/state` remained public-safe.
+- Anonymous admin export access returned 403.
+- Playwright anonymous browser QA passed at 375x812, 768x1024, and 1280x900 with no horizontal overflow.
+
+Still deferred:
+
+- Admin production smoke: `ADMIN_PIN` is not available in the shell environment.
+- Authenticated admin export backup smoke: admin auth is not available.
+- Supabase/storage confirmation: anonymous readiness does not expose storage mode and Supabase env vars are not available in this shell.
+- Logged-in regular-user browser QA: regular test-user credentials are not available in this shell.
+
+Final P0 recommendation: ready with warnings for anonymous production readiness and public-safe state; not ready for unrestricted real-family launch until `ADMIN_PIN` is rotated, admin/export smoke is completed, production storage mode is confirmed, and logged-in browser QA is completed.
 
 

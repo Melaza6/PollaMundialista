@@ -149,3 +149,39 @@ A follow-up was started on branch `qa/credentialed-production-smoke` on 2026-07-
 - The admin/export/storage production smoke remains open because `ADMIN_PIN` was still not available as an environment variable to the Codex command environment, and loading it from a local file was not approved under the environment-variable-only constraint.
 
 See `docs/CREDENTIALED_PRODUCTION_SMOKE.md` for details.
+
+## P0 Closeout Follow-Up - 2026-07-02
+
+Branch: `p0/closeout-production-readiness`
+
+Production endpoints were rechecked after the Melaza ecosystem workspace move:
+
+- `/`: HTTP 200.
+- `/app.js`: HTTP 200; no secret markers found.
+- `/styles.css`: HTTP 200; no secret markers found.
+- `/api/state`: HTTP 200, valid JSON, anonymous public-safe state.
+- `/api/live-readiness`: HTTP 200, `ready:true`.
+- Anonymous `/api/admin/export/backup`: HTTP 403.
+
+Anonymous `/api/state` remained scoped:
+
+- `matches=109`
+- `nextMatches=4`
+- `users=0`
+- `payments=0`
+- `payouts=0`
+- `auditLogs=0`
+- `adminPredictions=0`
+- `predictions=0`
+- no phone markers found
+- no env/diagnostic secret markers found
+
+Remaining deferred items:
+
+- Admin production smoke is deferred because `ADMIN_PIN` is not available in the shell environment.
+- Authenticated admin export backup smoke is deferred because admin auth is not available.
+- Supabase/storage confirmation is deferred because anonymous readiness does not expose storage mode and Supabase env vars are not available in this shell.
+- Logged-in regular-user browser QA is deferred because regular test-user credentials are not available in this shell.
+- Production `ADMIN_PIN` still needs rotation because a previous value was pasted into chat.
+
+See `docs/P0_CLOSEOUT_REPORT.md` for the final closeout details.

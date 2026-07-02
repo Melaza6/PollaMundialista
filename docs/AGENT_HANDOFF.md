@@ -870,7 +870,7 @@ pnpm db:check
 - P0: `/api/state` should be scoped by session role before wider use; unauthenticated/regular users should not receive admin-oriented collections or diagnostics.
 - P0: production readiness should be re-smoked after deploy, especially `ADMIN_PIN`, `SESSION_SECRET`, Supabase, sports API keys, and domain readiness.
 - P0: admin export backup needs a production/preview smoke before real family activity.
-- P0/P1: stale docs still describe older in-app payment/betting-style concepts and should be rewritten to match manual payments/manual payouts.
+- P0/P1: stale docs still describe older app-based payment concepts and should be rewritten to match manual payments/manual payouts.
 - P1: add access-control regression tests, real mobile QA, Supabase RLS verification, sports provider readiness checks, and clearer settlement/payout operations.
 
 ### Tests added/updated
@@ -1175,3 +1175,81 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 
 ### Recommended next agent
 - `.agents/qa-test-engineer.md` and `.agents/launch-deployment.md` for the deferred admin/export/storage production smoke after secure credential handling is available.
+
+## 2026-07-02 P0 closeout production readiness pass
+
+### Summary
+- Branch: `p0/closeout-production-readiness`.
+- Rewrote `WORLD_CUP_FAMILY_POOL_APP.md` to remove stale payment-provider and risky prediction-pool planning language and align with current manual payment, manual payout, manual refund, base match pot, and final tournament bonus rules.
+- Created `docs/P0_CLOSEOUT_REPORT.md`.
+- Reconfirmed anonymous production endpoints after the Melaza ecosystem workspace move.
+- Reconfirmed anonymous `/api/state` is public-safe and `/api/live-readiness` returns `ready:true`.
+- Reconfirmed anonymous admin export backup access returns 403.
+- Ran anonymous Playwright browser QA at 375x812, 768x1024, and 1280x900 with no horizontal overflow.
+- Confirmed regular-user, admin, authenticated export, and storage-mode confirmation remain deferred when credentials/env vars are unavailable.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/launch-deployment.md`
+- `.agents/security-auth-review.md`
+- `.agents/rules-compliance-risk.md`
+- `.agents/bilingual-copy-review.md`
+- `.agents/mobile-responsive-review.md`
+- `.agents/ui-ux-review.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/database-supabase.md`
+- `.agents/sports-api-sync.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `WORLD_CUP_FAMILY_POOL_APP.md`
+- `docs/P0_CLOSEOUT_REPORT.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+
+### Tests added/updated
+- None; this is documentation plus production smoke/browser QA.
+
+### Commands run
+```powershell
+pwd
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout -b p0/closeout-production-readiness
+risky-language rg scan across project docs, public/app.js, and server.js
+Invoke-WebRequest production endpoint smoke for /, /app.js, /styles.css, /api/state, /api/live-readiness
+Invoke-WebRequest anonymous /api/admin/export/backup
+Playwright anonymous browser QA at 375x812, 768x1024, and 1280x900
+Playwright language-toggle smoke at 375x812
+```
+
+### Result
+- `main` was already up to date.
+- Production `/`, `/app.js`, `/styles.css`, `/api/state`, and `/api/live-readiness` returned HTTP 200.
+- `/api/live-readiness` returned `ready:true`.
+- Anonymous `/api/state` returned `matches=109`, `nextMatches=4`, and empty sensitive collections.
+- Public assets had no secret markers.
+- Anonymous `/api/admin/export/backup` returned 403.
+- Playwright anonymous browser QA passed at 375x812, 768x1024, and 1280x900: no horizontal overflow, name/phone login visible, no email input, no Google/Gmail text, no admin diagnostics text.
+- Language toggle worked on the anonymous landing page.
+- Stale-language scan after cleanup finds only internal legacy migration variable names in `server.js`, not public UI or documentation copy.
+- `pnpm.cmd install --frozen-lockfile`: first run stopped on the non-TTY module purge prompt; rerun with `--config.confirmModulesPurge=false` hit restricted-network package fetches; escalated rerun passed and lifecycle checks passed 54/54.
+- `pnpm.cmd build`: passed, 54/54 tests inside build.
+- `pnpm.cmd test`: first sandbox run failed with `spawn EPERM`; escalated rerun passed, 54/54 tests. One escalated rerun timed out without output before a later rerun passed.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: first sandbox run hit restricted-network package fetches after dependency-status checks; escalated rerun passed, 54/54 tests.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Admin production smoke remains deferred because `ADMIN_PIN` is not available in the shell environment.
+- Authenticated admin export backup smoke remains deferred because admin auth is unavailable.
+- Supabase/storage confirmation remains deferred because anonymous readiness does not expose storage mode and Supabase env vars are unavailable in this shell.
+- Logged-in regular-user browser QA remains deferred because regular test-user credentials are unavailable in this shell.
+- Production `ADMIN_PIN` still needs rotation outside this repo because a previous value was pasted into chat.
+
+### Recommended next agent
+- `.agents/qa-test-engineer.md`, `.agents/launch-deployment.md`, and `.agents/database-supabase.md` after `ADMIN_PIN`, regular test-user credentials, and Supabase evidence/env vars are available through secure non-logging channels.

@@ -115,3 +115,27 @@ Known local warning: current Node is `v24.14.0`; project engines require Node `2
 `qa/admin-production-export-smoke`
 
 Use that branch only after the admin PIN is available as a secure environment variable or through an approved non-logging mechanism.
+
+## P0 Closeout Follow-Up - 2026-07-02
+
+Branch: `p0/closeout-production-readiness`
+
+Regular-user production smoke was deferred in this pass because no regular test-user credentials were available in the shell environment. No production users were created.
+
+Admin production smoke was deferred because `ADMIN_PIN` was not present in the shell environment. This pass did not guess, bypass, weaken auth, or use any value from chat.
+
+Authenticated admin export backup smoke was deferred because admin auth was not available.
+
+Anonymous export denial was rechecked:
+
+- anonymous `GET /api/admin/export/backup`: 403 Forbidden
+
+No export file was created, downloaded, committed, or left behind locally.
+
+Required next step remains:
+
+- rotate production `ADMIN_PIN`
+- provide it through a secure environment variable
+- rerun admin and authenticated export smoke without printing the value
+
+See `docs/P0_CLOSEOUT_REPORT.md` for the full closeout.
