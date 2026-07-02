@@ -8,9 +8,9 @@ Scope: documentation-only multi-agent audit. No production app behavior was chan
 
 Polla Mundialista 2026 is close to a focused MVP: name + phone access, no email/Google auth, exact-score-only scoring, manual payments, manual payouts, Supabase production storage, JSON local fallback, provider-backed World Cup sync, Colombian-themed bilingual UI, and mobile-first navigation are all represented in the current codebase.
 
-The largest launch risks are not feature gaps. They are trust and production-readiness gaps: unauthenticated `/api/state` returned admin-oriented collections before the `security/scope-public-state` branch, production readiness must be verified after each Vercel deploy, live mobile QA still needs a real browser pass, and some project documentation still describes older in-app payment/betting-style assumptions that conflict with the current manual-payment product.
+The largest launch risks are not feature gaps. They are trust and production-readiness gaps: unauthenticated `/api/state` returned admin-oriented collections before the `security/scope-public-state` branch. The `deploy/production-readiness-smoke` branch confirmed anonymous production state is now scoped and `/api/live-readiness` returns `ready:true`; credentialed regular-user/admin smoke, export backup, live mobile QA, and stale documentation cleanup still need follow-up.
 
-Recommendation: treat the app as **not ready for wider public/family use** until P0/P1 items are handled, especially state scoping, production env readiness, backup/export smoke testing, and documentation cleanup.
+Recommendation: treat the app as **ready with warnings**, not fully launch-ready, until credentialed regular-user/admin QA, admin export backup smoke testing, live mobile QA, and documentation cleanup are complete.
 
 ## 2. Current App Rules Confirmed
 

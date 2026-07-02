@@ -929,3 +929,55 @@ VERCEL=1 NODE_ENV=production pnpm test
 
 ### Recommended next agent
 - `.agents/launch-deployment.md` and `.agents/qa-test-engineer.md` for post-deploy live smoke.
+
+## 2026-07-01 Production readiness smoke after state scoping
+
+### Summary
+- Branch: `deploy/production-readiness-smoke`.
+- Ran post-deploy smoke checks against `https://polla.melazausa.com` after the P0 `/api/state` server-side scoping fix.
+- Created `docs/PRODUCTION_READINESS_SMOKE.md`.
+- No app behavior, business logic, auth, payments, payouts, sports API, Supabase architecture, or Vercel config was changed.
+
+### Production results
+- `/`: HTTP 200, app shell returned.
+- `/app.js`: HTTP 200, no secret/env markers and no email/Google/Gmail auth markers found.
+- `/styles.css`: HTTP 200, no secret/env markers found.
+- `/api/state`: HTTP 200, valid JSON.
+- Anonymous `/api/state` counts: `users=0`, `payments=0`, `payouts=0`, `auditLogs=0`, `adminPredictions=0`, `predictions=0`, `matches=109`, `nextMatches=4`.
+- Anonymous `/api/state` did not expose phone fields, session records, embedded diagnostics, admin notes, payment references, or env-like secret names.
+- `/api/live-readiness`: HTTP 200, `ready:true`; checks reported `PUBLIC_BASE_URL`, `ADMIN_PIN`, `SESSION_SECRET`, `SPORTS_API_KEY`, and `SPORTS_PROVIDER` as ok.
+- Anonymous `/api/admin/export/backup`: 403 Forbidden.
+
+### Files changed
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+
+### Commands run
+```bash
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+pnpm install --frozen-lockfile
+pnpm build
+pnpm test
+VERCEL=1 NODE_ENV=production pnpm test
+```
+
+### Result
+- Node syntax checks passed.
+- `pnpm install --frozen-lockfile`: passed; lifecycle tests passed 54/54.
+- `pnpm build`: passed; tests passed 54/54 inside build.
+- `pnpm test`: passed 54/54.
+- `VERCEL=1 NODE_ENV=production pnpm test`: passed 54/54.
+- `pnpm db:check`: skipped because Supabase env vars were not available in this shell.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Credentialed regular-user and admin production smoke was not run because no safe test credentials/admin PIN were available and creating users would mutate production data.
+- Admin export backup still needs a credentialed production smoke before real family activity.
+- Supabase storage mode is not visible to anonymous smoke after state scoping; confirm through admin Tools, Vercel env, or a safe storage-aware readiness check.
+- Real browser/mobile QA remains open.
+
+### Recommended next agent
+- `.agents/qa-test-engineer.md` for `qa/credentialed-production-smoke` after safe credentials are available.
