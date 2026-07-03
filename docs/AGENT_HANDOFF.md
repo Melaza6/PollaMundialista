@@ -1253,3 +1253,85 @@ Playwright language-toggle smoke at 375x812
 
 ### Recommended next agent
 - `.agents/qa-test-engineer.md`, `.agents/launch-deployment.md`, and `.agents/database-supabase.md` after `ADMIN_PIN`, regular test-user credentials, and Supabase evidence/env vars are available through secure non-logging channels.
+
+## 2026-07-03 Admin/export smoke after ADMIN_PIN rotation
+
+### Summary
+- Branch: `qa/admin-export-smoke-after-pin-rotation`.
+- Completed the deferred admin production smoke after production `ADMIN_PIN` rotation.
+- Loaded the rotated `ADMIN_PIN` only from ignored `.env.local` into the active command process; the value was not printed, written to files, captured in screenshots, committed, or documented.
+- Confirmed `.env.local` exists and is ignored by Git.
+- Confirmed `/api/live-readiness` returned HTTP 200 with `ready:true`.
+- Confirmed anonymous `/api/admin/export/backup` remained denied with HTTP 403.
+- Confirmed admin login returned HTTP 200 with role `ADMIN`.
+- Confirmed authenticated admin state included users, payments, payouts/refunds, admin predictions/review, and diagnostics/readiness data.
+- Confirmed headless Chromium admin dashboard smoke passed with admin tabs/panels visible and no screenshots saved.
+- Confirmed authenticated admin export backup returned HTTP 200, parsed as JSON, and contained no secret markers or PIN value.
+- Confirmed authenticated admin state reported storage label `Supabase`.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/launch-deployment.md`
+- `.agents/security-auth-review.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `docs/ADMIN_EXPORT_SMOKE.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/P0_CLOSEOUT_REPORT.md`
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+
+### Tests added/updated
+- None; documentation plus production smoke only.
+
+### Commands run
+```powershell
+pwd
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout qa/admin-export-smoke-after-pin-rotation
+git check-ignore -v .env.local
+ADMIN_PIN loading check from ignored .env.local without printing the value
+Invoke-WebRequest https://polla.melazausa.com/api/live-readiness
+Invoke-WebRequest anonymous https://polla.melazausa.com/api/admin/export/backup
+Invoke-WebRequest POST https://polla.melazausa.com/api/auth/admin
+Invoke-WebRequest authenticated https://polla.melazausa.com/api/admin/export/backup
+node tmp/admin-browser-smoke.mjs
+```
+
+Verification completed:
+
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd build
+pnpm.cmd test
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin"
+```
+
+### Result
+- Admin smoke passed.
+- Authenticated admin export backup smoke passed.
+- Supabase/storage confirmation passed through admin state: `Supabase`.
+- Export was inspected in memory only; no local export file was created.
+- Temporary ignored browser helper was deleted after use.
+- Production data touched was limited to existing app behavior for admin session records and audit logs from admin login/export.
+- No predictions, payments, payouts/refunds, match results, or sports sync actions were changed.
+- `pnpm.cmd install --frozen-lockfile`: initial run stopped on pnpm's no-TTY module purge prompt; rerun with `CI=true` and the same pnpm invocation passed.
+- `pnpm.cmd build`: passed, 54/54 tests in the build flow.
+- `pnpm.cmd test`: initial sandbox run failed only with `spawn EPERM`; escalated rerun passed, 54/54 tests.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: initial sandbox run hit restricted-network dependency fetches; escalated rerun passed, 54/54 tests.
+- `VERCEL` and `NODE_ENV` were cleared after production-mode tests.
+- Diff secret scan found only placeholder env var names and rotation guidance; no real secrets or old PIN value.
+
+### Remaining risks
+- Logged-in regular-user browser QA remains a separate launch follow-up if fresh regular-user credentials are required.
+- Production exports contain private pool data by design and should only be handled through secure admin workflows.
+- Local runner warning may remain: current Node can differ from project engine `22.x`.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.

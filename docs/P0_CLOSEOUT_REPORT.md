@@ -11,6 +11,27 @@ This pass closed or documented the remaining P0 production-readiness items that 
 
 Polla Mundialista remains documented as a standalone Melaza ecosystem product app managed through Melaza Network.
 
+## Admin/Export Follow-Up - 2026-07-03
+
+Follow-up branch: `qa/admin-export-smoke-after-pin-rotation`  
+Report: `docs/ADMIN_EXPORT_SMOKE.md`
+
+Per task context, production `ADMIN_PIN` was rotated before the follow-up smoke. The rotated value was loaded only from ignored `.env.local` into the active command process and was not printed, written to files, captured in screenshots, committed, or documented.
+
+Completed follow-up items:
+
+- Admin production smoke passed.
+- Admin dashboard loaded in headless Chromium without screenshots.
+- Admin-only tabs/panels were visible for match day, predictions, payments, results, prizes, rules, and tools.
+- Authenticated admin export backup smoke passed.
+- Anonymous export remained denied with HTTP 403.
+- Export response parsed as JSON and was inspected in memory only.
+- Export secret-marker scan found no API key, Supabase key, service-role key, session secret, database URL, `ADMIN_PIN`, old PIN marker, or rotated PIN value.
+- Admin state confirmed storage label: `Supabase`.
+- No export file was written, committed, uploaded, or left behind locally.
+
+Production data touched in the follow-up was limited to existing app behavior for admin sessions and audit logs from admin login/export. No predictions, payments, payouts/refunds, match results, or sports sync actions were changed.
+
 ## Items Completed
 
 - Cleaned stale payment/provider and risky prediction-pool wording from `WORLD_CUP_FAMILY_POOL_APP.md`.
@@ -21,16 +42,19 @@ Polla Mundialista remains documented as a standalone Melaza ecosystem product ap
 - Reconfirmed `/api/live-readiness` returns `ready:true`.
 - Reconfirmed anonymous admin export backup access returns 403.
 - Ran real Playwright browser QA against production at 375x812, 768x1024, and 1280x900.
-- Confirmed production `ADMIN_PIN` rotation remains required because a previous value was pasted into chat.
+- Initial pass confirmed production `ADMIN_PIN` rotation was required because a previous value was pasted into chat.
+- Follow-up completed admin production smoke after rotation.
+- Follow-up completed authenticated admin export backup smoke after rotation.
+- Follow-up confirmed production storage label as `Supabase` through authenticated admin state.
 
 ## Items Deferred
 
 | Item | Status | Reason |
 | --- | --- | --- |
 | Regular-user production smoke | Deferred in this pass | No regular test-user credentials were available in the shell environment, and this pass did not create production users. |
-| Admin production smoke | Deferred | `ADMIN_PIN` was not available in the shell environment. The previous chat value must not be reused or printed. |
-| Authenticated admin export backup smoke | Deferred | Admin auth was not available, so protected export could not be checked safely. |
-| Supabase/storage mode confirmation | Deferred | Anonymous readiness does not expose storage mode, admin diagnostics were unavailable, and `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` were not available for `pnpm db:check`. |
+| Admin production smoke | Completed in follow-up | Completed on `qa/admin-export-smoke-after-pin-rotation` after `ADMIN_PIN` rotation and ignored `.env.local` loading. |
+| Authenticated admin export backup smoke | Completed in follow-up | Authenticated export returned HTTP 200, parsed as JSON, and contained no secret markers or PIN value. |
+| Supabase/storage mode confirmation | Completed in follow-up | Authenticated admin state reported storage label `Supabase`. |
 | Logged-in match-card and prediction-form browser QA | Deferred | Regular-user credentials were not available, and this pass did not create production users. |
 | Admin browser QA | Deferred | Admin auth was not available. |
 
@@ -102,49 +126,40 @@ The previous credentialed production smoke remains the latest regular-user evide
 
 ## Admin Smoke Result
 
-Deferred.
+Initial P0 pass: deferred because `ADMIN_PIN` was not present in the shell environment. That pass did not guess, bypass, weaken auth, or use any value from chat.
 
-`ADMIN_PIN` was not present in the shell environment. This pass did not guess, bypass, weaken auth, or use any value from chat.
+Follow-up result: passed after production `ADMIN_PIN` rotation and ignored `.env.local` loading.
 
-Required next step:
-
-- rotate production `ADMIN_PIN`
-- provide it to the smoke runner through a secure environment variable
-- rerun admin production smoke without printing the value
+- Admin login returned HTTP 200 with role `ADMIN`.
+- Admin dashboard loaded in headless Chromium.
+- Admin-only tabs and panels were visible.
+- Admin state secret-marker scan found no real secrets or PIN value.
 
 ## Admin Export Backup Smoke Result
 
-Partially complete:
+Initial P0 pass:
 
 - anonymous `GET /api/admin/export/backup`: 403 Forbidden
 
-Deferred:
+Follow-up result: passed.
 
-- authenticated admin export backup
-- export content secret-marker check
-
-Reason: admin auth was not available.
-
-No export file was created, downloaded, committed, or left behind locally.
+- anonymous `GET /api/admin/export/backup`: 403 Forbidden
+- authenticated admin `GET /api/admin/export/backup`: HTTP 200
+- export parsed as JSON
+- export secret-marker scan found no API key, Supabase key, service-role key, session secret, database URL, `ADMIN_PIN`, old PIN marker, or rotated PIN value
+- no export file was created, downloaded, committed, uploaded, or left behind locally
 
 ## Supabase/Storage Confirmation Result
 
-Partially supported by available evidence:
+Initial P0 pass was partially supported by available evidence:
 
 - `/api/live-readiness` returned `ready:true`
 - anonymous `/api/state` remained public-safe and did not expose storage diagnostics or secret markers
 
-Deferred:
+Follow-up result: completed through authenticated admin state.
 
-- explicit production storage-driver confirmation
-- admin Tools/Diagnostics storage confirmation
-- `pnpm db:check`
-
-Reason:
-
-- anonymous readiness does not expose storage mode
-- admin diagnostics were not available
-- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` were not available in the shell
+- Admin state reported storage label: `Supabase`.
+- No storage secrets were exposed in admin state or the export response.
 
 ## Mobile/Browser QA Result
 
@@ -197,11 +212,17 @@ Reason: regular-user/admin credentials were not available and no production user
 - No sync actions triggered.
 - No export created.
 
+Follow-up production data touched:
+
+- admin session records and audit entries from admin login/export, created by existing app behavior
+- no business-data mutations: no predictions, payments, payouts/refunds, match results, or sports sync actions changed
+- no export files written locally
+
 ## Export Files Created/Deleted
 
-None.
+Initial P0 pass: none.
 
-No screenshots were created or committed.
+Follow-up: none. The admin export backup was inspected in memory only, and the temporary ignored browser helper was deleted after use. No screenshots were created or committed.
 
 ## Secret Scan Result
 
@@ -219,10 +240,10 @@ Final secret scan found only placeholder env var names and rotation guidance. No
 
 Ready with warnings for anonymous production readiness and public-safe state.
 
-Not ready for unrestricted real-family launch until these operational P0 items are completed:
+Admin production smoke, authenticated admin export backup smoke, and Supabase/storage confirmation were completed in the 2026-07-03 follow-up.
 
-1. rotate production `ADMIN_PIN`
-2. rerun admin production smoke with `ADMIN_PIN` supplied through a secure environment variable
-3. run authenticated admin export backup smoke
-4. confirm production Supabase/storage mode through admin diagnostics, Vercel/Supabase evidence, or `pnpm db:check`
-5. run logged-in browser QA for regular-user match cards, prediction forms, standings, and admin-hidden controls
+Remaining warnings before unrestricted real-family launch:
+
+1. keep production `ADMIN_PIN` rotated and secret
+2. complete any remaining logged-in regular-user browser QA for match cards, prediction forms, standings, and admin-hidden controls
+3. handle production exports only through secure admin workflows because they contain private pool data
