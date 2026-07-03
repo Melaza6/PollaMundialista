@@ -1335,3 +1335,88 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 
 ### Recommended next agent
 - `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.
+
+## 2026-07-03 Logged-in regular-user browser/mobile QA
+
+### Summary
+- Branch: `qa/logged-in-mobile-browser-qa`.
+- Completed the remaining logged-in regular-user browser/mobile QA gap against `https://polla.melazausa.com`.
+- Used the approved regular test user loaded from ignored `.env.local`; credential values and phone numbers were not printed, documented, screenshot, committed, or included in command output.
+- Confirmed existing-user login returned HTTP 200 with role `USER`.
+- Tested viewports: 375x812, 768x1024, and 1280x900.
+- Confirmed no email login and no Google/Gmail login appeared.
+- Confirmed matches, next matches, prediction form, predictions list, standings, payment/status surfaces, and user navigation loaded.
+- Confirmed new editable prediction form defaulted to `0-0`.
+- Confirmed existing saved prediction rows were visible in the predictions list.
+- Confirmed admin tools and admin diagnostics were hidden from the regular user.
+- Confirmed Spanish/English toggle worked, Spanish mode translated mapped team names, and English mode kept provider names.
+- Confirmed no horizontal overflow and usable tap targets/navigation across all tested viewports.
+- Confirmed regular-user `/api/state` did not expose phones, other users' payment/payout records, audit logs, diagnostics, admin config, or env-like secret names.
+- Confirmed regular-user admin endpoint checks returned HTTP 403 for export backup, sports verification, and admin matches.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/mobile-responsive-review.md`
+- `.agents/ui-ux-review.md`
+- `.agents/security-auth-review.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/bilingual-copy-review.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `docs/LOGGED_IN_BROWSER_QA.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/P0_CLOSEOUT_REPORT.md`
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+- `docs/ADMIN_EXPORT_SMOKE.md`
+
+### Tests added/updated
+- None; documentation plus production browser/API smoke only.
+
+### Commands run
+```powershell
+pwd
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout qa/logged-in-mobile-browser-qa
+git check-ignore -v .env.local
+approved test-user credential availability check from ignored .env.local without printing values
+node tmp/logged-in-browser-qa.mjs
+```
+
+Verification completed:
+
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd build
+pnpm.cmd test
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin"
+```
+
+### Result
+- Logged-in regular-user browser/mobile QA passed at 375x812, 768x1024, and 1280x900.
+- Regular-user API scoping passed.
+- Regular-user admin endpoint denial passed.
+- Screenshots created: none.
+- Export files created: none.
+- Temporary ignored helper was deleted after use.
+- Production data touched was limited to existing app behavior for regular-user session/login audit records.
+- No predictions, payments, payouts/refunds, match results, or sync actions were changed.
+- `pnpm.cmd install --frozen-lockfile`: initial run stopped on pnpm's no-TTY module purge prompt; rerun with `CI=true` and the same pnpm invocation passed.
+- `pnpm.cmd build`: passed, 54/54 tests in the build flow.
+- `pnpm.cmd test`: initial sandbox run failed only with `spawn EPERM`; escalated rerun passed, 54/54 tests.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: initial sandbox run hit restricted-network dependency fetches; escalated rerun passed, 54/54 tests.
+- `VERCEL` and `NODE_ENV` were cleared after production-mode tests.
+- Diff secret scan found only placeholder env var names and safety wording; no real secrets, old admin PIN value, phone numbers, or credentials.
+
+### Remaining risks
+- Current production data did not expose a saved editable next-match prediction form for this regular test user, so saved-score form prefill was not applicable on the current next-match screen.
+- Current next-match cards did not render a settlement summary because no visible next-match settlement had a paid count; the Rules surface displayed the match pot, manual refund, USD excess, and prize payout explanation.
+- Rerun logged-in browser QA if production match/prediction data changes materially before launch.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.

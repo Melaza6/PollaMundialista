@@ -32,6 +32,36 @@ Completed follow-up items:
 
 Production data touched in the follow-up was limited to existing app behavior for admin sessions and audit logs from admin login/export. No predictions, payments, payouts/refunds, match results, or sports sync actions were changed.
 
+## Logged-In Browser QA Follow-Up - 2026-07-03
+
+Follow-up branch: `qa/logged-in-mobile-browser-qa`  
+Report: `docs/LOGGED_IN_BROWSER_QA.md`
+
+Logged-in regular-user browser/mobile QA passed with the approved regular test user loaded from ignored `.env.local`. Credential values and phone numbers were not printed, documented, screenshot, committed, or included in command output.
+
+Completed follow-up items:
+
+- Existing-user regular login returned HTTP 200 with role `USER`.
+- Viewports tested: 375x812, 768x1024, and 1280x900.
+- Matches and next matches loaded.
+- Editable prediction form was usable.
+- New editable prediction form defaulted to `0-0`.
+- Predictions list and standings loaded.
+- Public-safe predictions were visible.
+- Current-user payment/refund/payout status loaded when applicable.
+- Admin tools and admin diagnostics were hidden.
+- Spanish/English language toggle worked.
+- Spanish mode translated mapped team names.
+- English mode kept provider names.
+- No horizontal overflow was detected.
+- Tap targets and mobile navigation were usable.
+- Regular-user `/api/state` did not expose phones, other users' payment/payout records, audit logs, diagnostics, admin config, or env-like secret names.
+- Regular-user access to `/api/admin/export/backup`, `/api/admin/sports/verify`, and `/api/admin/matches` returned HTTP 403.
+
+Current production data did not expose a saved editable next-match prediction form for the test user, so saved-score form prefill was not applicable on the current next-match screen. The user's existing saved prediction rows were visible in the predictions list.
+
+Current next-match cards did not render a settlement summary because no visible next-match settlement had a paid count. The Rules surface displayed the match pot, manual refund, USD excess, and prize payout explanation.
+
 ## Items Completed
 
 - Cleaned stale payment/provider and risky prediction-pool wording from `WORLD_CUP_FAMILY_POOL_APP.md`.
@@ -46,16 +76,17 @@ Production data touched in the follow-up was limited to existing app behavior fo
 - Follow-up completed admin production smoke after rotation.
 - Follow-up completed authenticated admin export backup smoke after rotation.
 - Follow-up confirmed production storage label as `Supabase` through authenticated admin state.
+- Follow-up completed logged-in regular-user browser/mobile QA.
 
 ## Items Deferred
 
 | Item | Status | Reason |
 | --- | --- | --- |
-| Regular-user production smoke | Deferred in this pass | No regular test-user credentials were available in the shell environment, and this pass did not create production users. |
+| Regular-user production smoke | Completed in follow-up | Logged-in regular-user browser/mobile QA passed on `qa/logged-in-mobile-browser-qa` with approved credentials loaded from ignored `.env.local`. |
 | Admin production smoke | Completed in follow-up | Completed on `qa/admin-export-smoke-after-pin-rotation` after `ADMIN_PIN` rotation and ignored `.env.local` loading. |
 | Authenticated admin export backup smoke | Completed in follow-up | Authenticated export returned HTTP 200, parsed as JSON, and contained no secret markers or PIN value. |
 | Supabase/storage mode confirmation | Completed in follow-up | Authenticated admin state reported storage label `Supabase`. |
-| Logged-in match-card and prediction-form browser QA | Deferred | Regular-user credentials were not available, and this pass did not create production users. |
+| Logged-in match-card and prediction-form browser QA | Completed in follow-up | Matches, next matches, prediction form, default `0-0`, predictions list, standings, language toggle, team-name translation, admin-hidden checks, and responsive checks passed across 375x812, 768x1024, and 1280x900. |
 | Admin browser QA | Deferred | Admin auth was not available. |
 
 ## Stale Language Cleanup
@@ -111,7 +142,7 @@ Anonymous `/api/state` result:
 
 ## Regular-User Smoke Result
 
-Deferred in this pass because no regular test-user credentials were available in the command environment.
+Initial P0 pass: deferred because no regular test-user credentials were available in the command environment.
 
 No fake production users were created.
 
@@ -123,6 +154,20 @@ The previous credentialed production smoke remains the latest regular-user evide
 - standings loaded
 - current-user scoped payments/payouts loaded
 - regular-user state did not expose other users' private/admin data
+
+Follow-up result: completed on `qa/logged-in-mobile-browser-qa`.
+
+- regular login succeeded with role `USER`
+- matches: 109
+- next matches: 4
+- public-safe predictions: 35
+- standings rows: 5
+- current-user payment rows: 7
+- current-user payout/refund rows: 7
+- regular-user state did not expose phone keys, the test user's phone value, other users' payment/payout records, audit logs, diagnostics, admin config, or env-like secret names
+- regular-user `GET /api/admin/export/backup`: HTTP 403
+- regular-user `GET /api/admin/sports/verify`: HTTP 403
+- regular-user `GET /api/admin/matches`: HTTP 403
 
 ## Admin Smoke Result
 
@@ -187,17 +232,26 @@ Language-toggle smoke at 375x812 passed:
 - English view showed login/sign-up copy
 - Spanish view showed login/register copy
 
-Deferred browser checks:
+Logged-in regular-user follow-up passed at all three viewports:
 
-- logged-in match cards
-- prediction form
-- default prediction score value
-- standings after login
-- Spanish team-name translation after login
-- regular-user admin-tool hiding after login
-- admin screens
+- existing-user login worked with name + phone
+- no email login appeared
+- no Google/Gmail login appeared
+- matches and next matches loaded
+- editable prediction form was usable
+- new editable prediction form defaulted to `0-0`
+- predictions list loaded
+- existing saved prediction rows were visible
+- standings loaded
+- admin tools and diagnostics were hidden
+- Spanish/English language toggle worked
+- Spanish mode translated mapped team names
+- English mode kept provider names
+- no horizontal overflow was detected
+- tap targets and mobile navigation were usable
+- cards, forms, buttons, and standings surfaces were readable
 
-Reason: regular-user/admin credentials were not available and no production users were created.
+Current production data note: no saved editable next-match prediction form was available for this regular test user during the smoke, so saved-score form prefill was not applicable on the current next-match screen.
 
 ## Production Data Touched
 
@@ -215,6 +269,7 @@ Reason: regular-user/admin credentials were not available and no production user
 Follow-up production data touched:
 
 - admin session records and audit entries from admin login/export, created by existing app behavior
+- regular-user session/login audit records from logged-in browser/mobile QA, created by existing app behavior
 - no business-data mutations: no predictions, payments, payouts/refunds, match results, or sports sync actions changed
 - no export files written locally
 
@@ -222,7 +277,7 @@ Follow-up production data touched:
 
 Initial P0 pass: none.
 
-Follow-up: none. The admin export backup was inspected in memory only, and the temporary ignored browser helper was deleted after use. No screenshots were created or committed.
+Follow-up: none. The admin export backup was inspected in memory only, the logged-in browser QA created no screenshots, and temporary ignored helpers were deleted after use. No screenshots were created or committed.
 
 ## Secret Scan Result
 
@@ -240,10 +295,10 @@ Final secret scan found only placeholder env var names and rotation guidance. No
 
 Ready with warnings for anonymous production readiness and public-safe state.
 
-Admin production smoke, authenticated admin export backup smoke, and Supabase/storage confirmation were completed in the 2026-07-03 follow-up.
+Admin production smoke, authenticated admin export backup smoke, Supabase/storage confirmation, and logged-in regular-user browser/mobile QA were completed in 2026-07-03 follow-ups.
 
 Remaining warnings before unrestricted real-family launch:
 
 1. keep production `ADMIN_PIN` rotated and secret
-2. complete any remaining logged-in regular-user browser QA for match cards, prediction forms, standings, and admin-hidden controls
-3. handle production exports only through secure admin workflows because they contain private pool data
+2. handle production exports only through secure admin workflows because they contain private pool data
+3. rerun logged-in browser QA if production match/prediction data changes materially before launch

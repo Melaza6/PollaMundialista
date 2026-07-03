@@ -118,4 +118,10 @@ Local warning remains: current Node is `v24.14.0`; project engines require Node 
 
 Admin production smoke, authenticated admin export backup smoke, and Supabase/storage confirmation are complete for this P0 follow-up.
 
-Proceed as ready with warnings: keep `ADMIN_PIN` rotated and secret, avoid committing local env files or export files, and complete any remaining logged-in regular-user browser QA before unrestricted family launch.
+Proceed as ready with warnings: keep `ADMIN_PIN` rotated and secret, avoid committing local env files or export files, and rerun logged-in regular-user browser QA if production match/prediction data changes materially before launch.
+
+## Logged-In Browser QA Follow-Up
+
+The remaining logged-in regular-user browser/mobile QA gap was completed on 2026-07-03 in `docs/LOGGED_IN_BROWSER_QA.md`.
+
+That follow-up passed at 375x812, 768x1024, and 1280x900 with no screenshots or export files created. Regular-user admin endpoint checks returned HTTP 403, and regular-user `/api/state` remained scoped.

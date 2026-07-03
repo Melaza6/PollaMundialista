@@ -17,7 +17,7 @@ Polla Mundialista sits alongside MLP and MN at the ecosystem level. MN manages a
 
 ## Credentials Used
 
-- Regular-user smoke used the approved production test user for this session: display name `Leo`; phone number intentionally omitted from this document.
+- Regular-user smoke used the approved production test user for this session; identifying credential values are intentionally omitted from this document.
 - Admin PIN was provided in chat, but it was not available to the command environment as `ADMIN_PIN`. To avoid placing the admin PIN in shell commands, tool logs, files, screenshots, commits, or reports, the admin login/export smoke was not executed in this pass.
 - Production `ADMIN_PIN` should be rotated because a value was pasted into chat.
 
@@ -69,6 +69,32 @@ The authenticated regular-user `/api/state` response was inspected through safe 
 - env-like secret names
 
 Regular-user state did include the expected user-safe data needed by the app: matches, public-safe predictions, standings, current-user profile/session-safe state, and current-user payment/payout status.
+
+## Logged-In Browser QA Follow-Up - 2026-07-03
+
+Branch: `qa/logged-in-mobile-browser-qa`  
+Report: `docs/LOGGED_IN_BROWSER_QA.md`
+
+Logged-in regular-user browser/mobile QA passed with the approved regular test user loaded from ignored `.env.local`. Credential values and phone numbers were not printed, documented, screenshot, committed, or included in command output.
+
+Follow-up results:
+
+- Existing-user login returned HTTP 200 with role `USER`.
+- Viewports tested: 375x812, 768x1024, and 1280x900.
+- Matches and next matches loaded.
+- Editable prediction form was usable.
+- New editable prediction form defaulted to `0-0`.
+- Predictions list and standings loaded.
+- Existing saved prediction rows were visible.
+- Admin tools and admin diagnostics were hidden.
+- Spanish/English language toggle worked.
+- Spanish mode translated mapped team names.
+- English mode kept provider names.
+- No horizontal overflow was detected.
+- Tap targets and mobile navigation were usable.
+- Regular-user admin endpoint checks returned HTTP 403 for export backup, sports verification, and admin matches.
+
+Current production data did not expose a saved editable next-match prediction form for the test user, so saved-score form prefill was not applicable on the current next-match screen. Current next-match cards did not render a settlement summary because no visible next-match settlement had a paid count; the Rules surface displayed the match pot, manual refund, USD excess, and prize payout explanation.
 
 ## Admin Production Smoke Result
 
@@ -138,6 +164,7 @@ Follow-up 2026-07-03 result: completed through authenticated admin state.
 Follow-up production data touched:
 
 - admin session records and audit entries from admin login/export, created by existing app behavior
+- regular-user session/login audit records from logged-in browser/mobile QA, created by existing app behavior
 - no predictions created or edited
 - no payments confirmed, rejected, or changed
 - no payouts/refunds approved, marked paid, or changed
@@ -163,14 +190,15 @@ Known local warning: current Node is `v24.14.0`; project engines require Node `2
 - Admin production smoke is complete as of the 2026-07-03 follow-up.
 - Authenticated admin export backup smoke is complete as of the 2026-07-03 follow-up.
 - Supabase/storage confirmation is complete as of the 2026-07-03 follow-up; admin state reported `Supabase`.
-- Real mobile/browser QA at 375x812, 768x1024, and 1280x900 remains deferred as a separate launch gate.
+- Logged-in regular-user browser/mobile QA is complete as of the 2026-07-03 follow-up.
+- Rerun logged-in browser QA if production match/prediction data changes materially before launch.
 - Production `ADMIN_PIN` must remain rotated and secret.
 
 ## Recommended Next Branch
 
-`qa/admin-export-smoke-after-pin-rotation`
+`qa/logged-in-mobile-browser-qa`
 
-Use this branch for review/commit of the admin/export smoke documentation follow-up.
+Use this branch for review/commit of the logged-in browser/mobile QA documentation follow-up.
 
 ## P0 Closeout Follow-Up - 2026-07-02
 
@@ -191,6 +219,6 @@ No export file was created, downloaded, committed, or left behind locally.
 Required next step remains:
 
 - keep production `ADMIN_PIN` rotated and secret
-- complete any remaining logged-in regular-user browser QA if fresh regular-user credentials are needed
+- rerun logged-in browser QA if production match/prediction data changes materially before launch
 
 See `docs/P0_CLOSEOUT_REPORT.md` for the full closeout.
