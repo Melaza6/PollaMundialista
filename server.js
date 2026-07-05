@@ -945,10 +945,13 @@ async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/live-readiness") return sendJson(res, 200, liveReadiness());
   if (req.method === "GET" && pathname === "/api/state") return sendJson(res, 200, statePayload(db, currentUser));
   if (req.method === "GET" && pathname === "/api/sync/status") {
+    const admin = requireAdmin(db, req);
+    if (!admin) return sendJson(res, 403, { error: "Admin only" });
     return sendJson(res, 200, sportsProvider.getLastSyncStatus(db.sportsSync));
   }
   if (req.method === "GET" && pathname === "/api/exchange-rate/usd-cop") {
     const admin = requireAdmin(db, req);
+    if (!admin) return sendJson(res, 403, { error: "Admin only" });
     const rate = await getUsdCopRate({ cache: db.exchangeRate, env: process.env });
     db.exchangeRate = rate;
     addAuditLog(db, {

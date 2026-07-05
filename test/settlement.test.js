@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -58,6 +58,110 @@ async function waitForHealth(port, attempts = 30, child = null, logs = []) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`Timed out waiting for test server. Logs: ${safeProcessLog(logs) || "(none)"}`);
+}
+
+function copyIsolatedServerFiles(dir) {
+  for (const path of ["package.json", "server.js", "lib", "server", "public"]) {
+    cpSync(path, join(dir, path), { recursive: true });
+  }
+}
+
+async function removeDirWithRetry(dir) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(error.code) || attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+}
+
+async function withIsolatedHttpServer(db, callback) {
+  const dir = mkdtempSync(join(tmpdir(), "polla-http-"));
+  const dbDir = join(dir, "data");
+  const dbPath = join(dbDir, "db.json");
+  const port = 4700 + Math.floor(Math.random() * 500);
+  const childLogs = [];
+
+  copyIsolatedServerFiles(dir);
+  mkdirSync(dbDir, { recursive: true });
+  writeFileSync(dbPath, JSON.stringify(db, null, 2));
+
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: dir,
+    env: {
+      Path: process.env.Path,
+      PATH: process.env.PATH,
+      SystemRoot: process.env.SystemRoot,
+      TEMP: process.env.TEMP,
+      TMP: process.env.TMP,
+      USERPROFILE: process.env.USERPROFILE,
+      PORT: String(port),
+      VERCEL: "",
+      NODE_ENV: "test",
+      DATA_STORAGE_DRIVER: "json",
+      ADMIN_PIN: "test-admin-pin-not-2026",
+      SESSION_SECRET: "test-session-secret-long-enough-for-production",
+      API_FOOTBALL_KEY: "test-api-football-key",
+      FOOTBALL_DATA_API_KEY: "test-football-data-key",
+      SUPABASE_ANON_KEY: "test-supabase-anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "test-supabase-service-role-key",
+      DATABASE_URL: "postgres://example.invalid/polla_test",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  child.stdout.on("data", (chunk) => childLogs.push(String(chunk)));
+  child.stderr.on("data", (chunk) => childLogs.push(String(chunk)));
+
+  try {
+    await waitForHealth(port, 50, child, childLogs);
+    await callback({ baseUrl: `http://127.0.0.1:${port}`, dbPath });
+  } finally {
+    if (child.exitCode === null) {
+      const exited = new Promise((resolve) => child.once("exit", resolve));
+      child.kill();
+      await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 1000))]);
+    }
+    await removeDirWithRetry(dir);
+  }
+}
+
+async function requestJson(baseUrl, path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  let body = options.body;
+  if (body && typeof body !== "string") {
+    body = JSON.stringify(body);
+    headers["Content-Type"] ||= "application/json";
+  }
+  const response = await fetch(`${baseUrl}${path}`, { ...options, headers, body });
+  const text = await response.text();
+  const parsed = safeJsonParse(text);
+  assert.equal(parsed.ok, true, `Expected JSON from ${options.method || "GET"} ${path}; got ${text.slice(0, 200)}`);
+  return { response, payload: parsed.value };
+}
+
+function authHeaders(sessionToken) {
+  return { Authorization: `Bearer ${sessionToken}` };
+}
+
+function assertNoSecretMarkers(serialized) {
+  assert.doesNotMatch(
+    serialized,
+    /API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin/i,
+  );
+  for (const value of [
+    "test-api-football-key",
+    "test-football-data-key",
+    "test-supabase-anon-key",
+    "test-supabase-service-role-key",
+    "test-session-secret-long-enough-for-production",
+    "test-admin-pin-not-2026",
+    "postgres://example.invalid/polla_test",
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
 }
 
 let statePayloadPromise = null;
@@ -1024,7 +1128,25 @@ test("Anonymous state exposes only public-safe bootstrap data", async () => {
   assert.equal(state.sportsSync, null);
   assert.equal(state.sportsVerification, null);
   assert.equal(state.deployment, null);
-  for (const blocked of ["5551111", "5552222", "pay1", "manual_payout_1", "PAYMENT_VERIFIED", "admin provider detail", "admin-only sync detail", "SESSION_SECRET"]) {
+  assert.equal("phone" in state, false);
+  assert.equal("normalizedPhone" in state, false);
+  assert.equal("sessions" in state, false);
+  assertNoSecretMarkers(serialized);
+  for (const blocked of [
+    "5551111",
+    "5552222",
+    "phone",
+    "normalizedPhone",
+    "pay1",
+    "manual_payout_1",
+    "PAYMENT_VERIFIED",
+    "admin provider detail",
+    "admin-only sync detail",
+    "dataStorageDriver",
+    "authProviders",
+    "sessions",
+    "SESSION_SECRET",
+  ]) {
     assert.doesNotMatch(serialized, new RegExp(blocked));
   }
 });
@@ -1056,8 +1178,10 @@ test("Regular user state keeps all predictions but excludes other users' private
   assert.equal(state.standings.length, 2);
   assert.equal(state.payments.length, 1);
   assert.equal(state.payments[0].id, "pay1");
+  assert.equal(state.payments.every((payment) => payment.userId === "u1"), true);
   assert.equal(state.payments[0].adminNotes, undefined);
   assert.equal(state.payments[0].reference, undefined);
+  assert.equal(state.payouts.every((payout) => payout.userId === "u1"), true);
   assert.equal(state.auditLogs.length, 0);
   assert.equal(state.adminPredictions.length, 0);
   assert.equal(state.storage, null);
@@ -1065,10 +1189,14 @@ test("Regular user state keeps all predictions but excludes other users' private
   assert.equal(state.sportsVerification, null);
   assert.equal(state.exchangeRate.invalidRejected, undefined);
   assert.ok(state.settlements.length > 0);
+  assert.equal(state.settlements.every((settlement) => settlement.refunds.every((refund) => refund.userId === "u1")), true);
+  assertNoSecretMarkers(serialized);
 
   for (const blocked of [
     "5551111",
     "5552222",
+    "phone",
+    "normalizedPhone",
     "pay2",
     "other-reference",
     "other admin-only note",
@@ -1101,6 +1229,117 @@ test("Admin state preserves admin dashboard data after server-side admin role", 
   assert.ok(state.sportsSync);
   assert.ok(state.sportsVerification);
   assert.ok(state.deployment);
+  assertNoSecretMarkers(JSON.stringify(state));
+});
+
+test("Admin-only HTTP endpoints deny anonymous and regular users", async () => {
+  const db = scopedStateFixture();
+  await withIsolatedHttpServer(db, async ({ baseUrl }) => {
+    const login = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { name: "Ana", phone: "5551111" },
+    });
+    assert.equal(login.response.status, 200);
+    assert.equal(login.payload.user.role, "USER");
+    const regularHeaders = authHeaders(login.payload.sessionToken);
+
+    const adminOnlyChecks = [
+      { method: "GET", path: "/api/admin/export/backup" },
+      { method: "GET", path: "/api/admin/matches" },
+      { method: "GET", path: "/api/admin/results" },
+      { method: "GET", path: "/api/admin/sports/verify" },
+      { method: "GET", path: "/api/sync/status" },
+      { method: "GET", path: "/api/exchange-rate/usd-cop" },
+      { method: "PATCH", path: "/api/admin/payments/pay1", body: { verificationStatus: "VERIFIED" } },
+      { method: "PATCH", path: "/api/admin/payouts/manual_payout_1", body: { status: "paid" } },
+      { method: "POST", path: "/api/admin/results/sync", body: { matchId: "m1" } },
+      { method: "POST", path: "/api/admin/matches/sync", body: {} },
+      { method: "POST", path: "/api/admin/predictions/p1/correction", body: { homeScore: 0, awayScore: 0, reason: "test denial" } },
+      { method: "POST", path: "/api/admin/whatsapp", body: { type: "payment_reminder" } },
+    ];
+
+    for (const check of adminOnlyChecks) {
+      const anonymous = await requestJson(baseUrl, check.path, { method: check.method, body: check.body });
+      assert.equal(anonymous.response.status, 403, `${check.method} ${check.path} should deny anonymous users`);
+      assert.equal(anonymous.payload.error, "Admin only");
+
+      const regular = await requestJson(baseUrl, check.path, { method: check.method, headers: regularHeaders, body: check.body });
+      assert.equal(regular.response.status, 403, `${check.method} ${check.path} should deny regular users`);
+      assert.equal(regular.payload.error, "Admin only");
+    }
+  });
+});
+
+test("Admin HTTP state and export require admin session and do not expose secrets", async () => {
+  const db = scopedStateFixture();
+  await withIsolatedHttpServer(db, async ({ baseUrl }) => {
+    const anonymousState = await requestJson(baseUrl, "/api/state");
+    assert.equal(anonymousState.response.status, 200);
+    assert.equal(anonymousState.payload.currentUser, null);
+    assert.deepEqual(anonymousState.payload.auditLogs, []);
+
+    const adminLogin = await requestJson(baseUrl, "/api/auth/admin", {
+      method: "POST",
+      body: { pin: "test-admin-pin-not-2026" },
+    });
+    assert.equal(adminLogin.response.status, 200);
+    assert.equal(adminLogin.payload.user.role, "ADMIN");
+
+    const headers = authHeaders(adminLogin.payload.sessionToken);
+    const adminState = await requestJson(baseUrl, "/api/state", { headers });
+    assert.equal(adminState.response.status, 200);
+    assert.equal(adminState.payload.currentUser.role, "ADMIN");
+    assert.equal(adminState.payload.users.some((user) => user.phone === "5552222"), true);
+    assert.equal(adminState.payload.payments.length, 2);
+    assert.equal(adminState.payload.payouts.length > 0, true);
+    assert.equal(adminState.payload.adminPredictions.length, 2);
+    assert.equal(adminState.payload.auditLogs.length > 0, true);
+    assert.ok(adminState.payload.matchDay);
+    assert.ok(adminState.payload.storage);
+    assert.ok(adminState.payload.sportsVerification);
+    assertNoSecretMarkers(JSON.stringify(adminState.payload));
+
+    const adminExport = await requestJson(baseUrl, "/api/admin/export/backup", { headers });
+    assert.equal(adminExport.response.status, 200);
+    assert.equal(adminExport.payload.users.some((user) => user.phone === "5552222"), true);
+    assert.equal(adminExport.payload.payments.length, 2);
+    assert.equal(adminExport.payload.payouts.length > 0, true);
+    assert.equal(adminExport.payload.auditLogs.length > 0, true);
+    assertNoSecretMarkers(JSON.stringify(adminExport.payload));
+  });
+});
+
+test("Regular prediction writes stay scoped to the session user", async () => {
+  const db = scopedStateFixture();
+  db.matches[0] = {
+    ...db.matches[0],
+    kickoffAt: "2099-06-20T20:00:00.000Z",
+    status: "SCHEDULED",
+    result: null,
+  };
+
+  await withIsolatedHttpServer(db, async ({ baseUrl, dbPath }) => {
+    const login = await requestJson(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { name: "Ana", phone: "5551111" },
+    });
+    const update = await requestJson(baseUrl, "/api/predictions", {
+      method: "POST",
+      headers: authHeaders(login.payload.sessionToken),
+      body: { matchId: "m1", userId: "u2", homeScore: 4, awayScore: 4, currency: "COP" },
+    });
+    assert.equal(update.response.status, 200);
+
+    const updatedDb = JSON.parse(readFileSync(dbPath, "utf8"));
+    const ownPrediction = updatedDb.predictions.find((prediction) => prediction.id === "p1");
+    const otherPrediction = updatedDb.predictions.find((prediction) => prediction.id === "p2");
+    assert.equal(ownPrediction.userId, "u1");
+    assert.equal(ownPrediction.homeScore, 4);
+    assert.equal(ownPrediction.awayScore, 4);
+    assert.equal(otherPrediction.userId, "u2");
+    assert.equal(otherPrediction.homeScore, 1);
+    assert.equal(otherPrediction.awayScore, 0);
+  });
 });
 
 test("Supabase storage accepts project URLs and REST URLs", async () => {

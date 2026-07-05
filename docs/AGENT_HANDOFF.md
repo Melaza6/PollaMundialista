@@ -1336,6 +1336,96 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 ### Recommended next agent
 - `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.
 
+## 2026-07-03 P1 access-control regression tests
+
+### Summary
+- Branch: `security/access-control-regression-tests`.
+- Added deeper access-control regression tests after the P0 `/api/state` scoping fix.
+- Tightened two route-level gaps found during the security pass:
+  - anonymous/regular users can no longer call `GET /api/sync/status`
+  - anonymous/regular users can no longer call `GET /api/exchange-rate/usd-cop`
+- Added isolated HTTP test-server coverage that uses a temporary copied app source and temporary JSON database, then removes the temp files after each run.
+- Confirmed regular-user prediction writes stay scoped to the authenticated session user even if the request body includes another `userId`.
+- Confirmed admin state/export remain available only after admin session verification and do not expose secret marker names or test secret values.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/security-auth-review.md`
+- `.agents/rules-compliance-risk.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/code-review-refactor.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `server.js`
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+
+### Tests added/updated
+- Strengthened anonymous `/api/state` assertions for raw users, phone markers, login/session records, diagnostics, admin config, and secret markers.
+- Strengthened regular-user `/api/state` assertions for safe display users, own payment/payout scoping, hidden diagnostics, hidden admin prediction rows, hidden audit logs, and secret-marker absence.
+- Strengthened admin `/api/state` assertions for admin collections plus secret-marker absence.
+- Added HTTP denial coverage for anonymous and regular users across:
+  - `/api/admin/export/backup`
+  - `/api/admin/matches`
+  - `/api/admin/results`
+  - `/api/admin/sports/verify`
+  - `/api/sync/status`
+  - `/api/exchange-rate/usd-cop`
+  - `/api/admin/payments/:id`
+  - `/api/admin/payouts/:id`
+  - `/api/admin/results/sync`
+  - `/api/admin/matches/sync`
+  - `/api/admin/predictions/:id/correction`
+  - `/api/admin/whatsapp`
+- Added admin HTTP state/export smoke tests using test-only placeholder secrets.
+- Added regular prediction ownership route test proving request-body `userId` cannot redirect writes to another user.
+
+### Commands run
+```powershell
+pwd
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout -b security/access-control-regression-tests
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+node --check test/settlement.test.js
+pnpm.cmd install --frozen-lockfile
+$env:CI = "true"; pnpm.cmd install --frozen-lockfile; Remove-Item Env:\CI
+pnpm.cmd build
+pnpm.cmd test
+$env:CI = "true"; pnpm.cmd test; Remove-Item Env:\CI
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+```
+
+### Result
+- `main` was already up to date before branch creation.
+- `node --check server.js`: passed.
+- `node --check public/app.js`: passed.
+- `node --check lib/rules.js`: passed.
+- `node --check test/settlement.test.js`: passed.
+- `pnpm.cmd install --frozen-lockfile`: first run stopped on pnpm's no-TTY module purge prompt; rerun with `CI=true` passed and lockfile was already up to date.
+- `pnpm.cmd build`: passed, 57/57 tests in the build flow.
+- `pnpm.cmd test`: sandbox run reached tests but child-process route tests hit the known sandbox `spawn EPERM`; escalated rerun passed, 57/57 tests.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: sandbox run timed out during pnpm dependency repair with an `EPERM` unlink in `node_modules`; escalated rerun passed, 57/57 tests, and `VERCEL`/`NODE_ENV` were cleared afterward.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+- Temporary `polla-http-*` directories from the initial failed cleanup were removed from the system temp folder.
+- Generated `.pnpm-store/` was removed from the workspace.
+
+### Remaining risks
+- Supabase RLS verification remains a separate defense-in-depth task.
+- Future admin/sensitive endpoints should receive anonymous, regular-user, and admin regression coverage when added.
+- This branch intentionally does not change scoring, match pots, USD bonus, payment/payout/refund logic, sports provider logic, Supabase/storage architecture, RLS, Vercel config, or package files.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` if the owner asks to commit/push.
+
 ## 2026-07-03 Logged-in regular-user browser/mobile QA
 
 ### Summary

@@ -267,4 +267,20 @@ Still deferred:
 
 Final P0 recommendation: ready with warnings for anonymous production readiness and public-safe state; not ready for unrestricted real-family launch until `ADMIN_PIN` is rotated, admin/export smoke is completed, production storage mode is confirmed, and logged-in browser QA is completed.
 
+## 14. P1 Access-Control Regression Update - 2026-07-03
 
+Branch: `security/access-control-regression-tests`
+
+Completed:
+
+- Added deeper regression coverage for anonymous, regular-user, and admin `/api/state` response shapes.
+- Added real HTTP denial checks for anonymous and regular users against admin-only export, match/result, payment, payout, prediction-correction, WhatsApp, sports verification, sync status, and exchange-rate refresh endpoints.
+- Confirmed admin `/api/state` and admin export remain available after server-side admin session verification.
+- Confirmed admin state/export do not expose secret marker names or test-only secret values.
+- Confirmed regular prediction writes remain scoped to the authenticated session user and cannot be redirected by request-body `userId`.
+- Fixed two P1 access-control gaps by requiring admin authorization on `GET /api/sync/status` and `GET /api/exchange-rate/usd-cop`.
+
+Remaining risk:
+
+- Supabase RLS verification remains a separate defense-in-depth task.
+- Future endpoint additions should include explicit anonymous, regular-user, and admin coverage before launch use.
