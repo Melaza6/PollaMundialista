@@ -1336,6 +1336,158 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 ### Recommended next agent
 - `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.
 
+## 2026-07-05 Launch operations test-timeout triage
+
+### Summary
+- Branch: `ops/launch-operations-readiness`.
+- Triage completed after the safe commit/merge flow stopped on `pnpm.cmd test`.
+- Root cause: the isolated HTTP test helper could randomly choose Fetch-blocked local ports such as `5060` or `5061`. The child server could start and print its listener banner, while Node's built-in `fetch` refused the health request until the test timed out.
+- Updated the test harness to allocate OS-provided fetch-safe ports, use sanitized child-process environment variables, and include the last health-check error in timeout diagnostics.
+- No app behavior, auth model, scoring, match pot logic, USD bonus logic, payment/payout/refund logic, sports provider logic, Supabase/storage architecture, RLS policy, Vercel config, or package file was changed.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/security-auth-review.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/code-review-refactor.md`
+
+### Files changed
+- `test/settlement.test.js`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- Updated existing isolated HTTP/admin export test helpers.
+- No new product behavior tests were added.
+
+### Commands run
+```powershell
+pwd
+git branch --show-current
+git status --short
+node --test-name-pattern "Admin HTTP state and export require admin session and do not expose secrets" test/settlement.test.js
+node --check server.js
+node --check public/app.js
+node --check lib/rules.js
+node --check test/settlement.test.js
+$env:CI = "true"; pnpm.cmd install --frozen-lockfile; Remove-Item Env:\CI
+pnpm.cmd test
+pnpm.cmd build
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin"
+git check-ignore -v .env.local
+git status --short .env.local
+```
+
+### Result
+- Targeted admin HTTP/export test passed.
+- `node --check server.js`: passed.
+- `node --check public/app.js`: passed.
+- `node --check lib/rules.js`: passed.
+- `node --check test/settlement.test.js`: passed.
+- `CI=true pnpm.cmd install --frozen-lockfile`: passed; pnpm prepare also ran 57/57 tests.
+- `pnpm.cmd test`: passed, 57/57 tests.
+- `pnpm.cmd build`: passed, 57/57 tests in the build flow.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: passed, 57/57 tests, and `VERCEL`/`NODE_ENV` were cleared afterward.
+- Diff secret scan found only placeholder/test env names and safety wording; no real secrets, old admin PIN value, phone numbers, or credentials.
+- Stale `polla-http-*` temp directories were removed from the user temp folder. `.pnpm-store/` was absent.
+
+### Remaining risks
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+- Existing launch operations documentation changes remain uncommitted alongside this test harness fix.
+- `AGENTS.md` has an existing uncommitted ecosystem-reporting edit that should be reviewed before staging the launch branch.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` to resume the safe commit/merge flow after reviewing the expanded intended file list.
+
+## 2026-07-05 Launch operations readiness
+
+### Summary
+- Branch: `ops/launch-operations-readiness`.
+- Created `docs/LAUNCH_OPERATIONS_READINESS.md` as the admin operations runbook for launch.
+- Rechecked production readiness after the P1 access-control regression branch was merged to `main`.
+- Confirmed anonymous `/api/state` remains public-safe and `/api/live-readiness` returns `ready:true`.
+- Confirmed anonymous admin export, sync status, and USD/COP refresh endpoints return HTTP 403.
+- Completed admin smoke with `ADMIN_PIN` loaded only from ignored `.env.local`; the value was not printed, written, committed, or documented.
+- Completed authenticated admin export backup smoke in memory only; no export file was written.
+- Confirmed admin state still reports storage label `Supabase`.
+- Confirmed read-only sports readiness: API-Football and football-data.org configured, active provider `football-data`, status `SYNCED`, World Cup 2026 sanity passed, and no warnings.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/launch-deployment.md`
+- `.agents/security-auth-review.md`
+- `.agents/payments-pot-logic.md`
+- `.agents/world-cup-rules-scoring.md`
+- `.agents/sports-api-sync.md`
+- `.agents/rules-compliance-risk.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/code-comments-documentation.md`
+- `.agents/bilingual-copy-review.md`
+
+### Files changed
+- `docs/LAUNCH_OPERATIONS_READINESS.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/P0_CLOSEOUT_REPORT.md`
+- `docs/PRODUCTION_READINESS_SMOKE.md`
+- `docs/CREDENTIALED_PRODUCTION_SMOKE.md`
+- `docs/ADMIN_EXPORT_SMOKE.md`
+- `docs/LOGGED_IN_BROWSER_QA.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+
+### Tests added/updated
+- None; this was a documentation and production-smoke operations pass.
+
+### Commands run
+```powershell
+pwd
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout -b ops/launch-operations-readiness
+Invoke-WebRequest / Node fetch production endpoint smoke for /, /app.js, /styles.css, /api/state, /api/live-readiness, /api/admin/export/backup, /api/sync/status, and /api/exchange-rate/usd-cop
+ADMIN_PIN loading check from ignored .env.local without printing the value
+Invoke-RestMethod POST https://polla.melazausa.com/api/auth/admin
+Invoke-RestMethod authenticated https://polla.melazausa.com/api/state
+Invoke-WebRequest authenticated https://polla.melazausa.com/api/admin/export/backup
+Invoke-RestMethod authenticated https://polla.melazausa.com/api/admin/sports/verify
+Invoke-RestMethod authenticated https://polla.melazausa.com/api/sync/status
+pnpm.cmd install --frozen-lockfile
+$env:CI = "true"; pnpm.cmd install --frozen-lockfile; Remove-Item Env:\CI
+pnpm.cmd build
+pnpm.cmd test
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+```
+
+### Result
+- Production `/`, `/app.js`, `/styles.css`, `/api/state`, and `/api/live-readiness` returned HTTP 200.
+- `/api/state` anonymous state was valid JSON with `matches=109`, `nextMatches=4`, and empty users/payments/payouts/audit/admin prediction collections.
+- `/api/live-readiness` returned `ready:true` with no failing keys.
+- Public JS/CSS did not contain secret markers.
+- Anonymous `/api/admin/export/backup`, `/api/sync/status`, and `/api/exchange-rate/usd-cop` returned HTTP 403.
+- Admin login returned role `ADMIN`.
+- Admin state included expected admin collections and storage label `Supabase`.
+- Authenticated admin export returned HTTP 200, parsed as JSON, contained no secret markers, and was inspected in memory only.
+- Read-only sports verification reported API-Football and football-data.org configured, active provider `football-data`, status `SYNCED`, World Cup 2026 sanity passed, and no warnings.
+- `pnpm.cmd install --frozen-lockfile` first hit pnpm's no-TTY module purge guard; rerun with `CI=true` passed.
+- `pnpm.cmd build`: passed, 57/57 tests in the build flow.
+- `pnpm.cmd test`: sandbox run failed only with the known child-process `spawn EPERM`; escalated rerun passed, 57/57 tests.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: passed, 57/57 tests, and `VERCEL`/`NODE_ENV` were cleared afterward.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Regular-user smoke was not rerun in this pass because no approved regular-user full-name plus phone credential pair was available under expected non-logging env names.
+- Production exports contain private pool data and must stay out of Git and insecure channels.
+- Sports fixture/result sync and USD/COP refresh were not triggered during this read-only pass because they can mutate production state.
+- Rerun logged-in regular-user browser/mobile QA if production match or prediction data changes materially before launch.
+- Supabase RLS verification remains a separate defense-in-depth task.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` if the owner asks to commit/push this documentation-only branch.
+
 ## 2026-07-03 P1 access-control regression tests
 
 ### Summary

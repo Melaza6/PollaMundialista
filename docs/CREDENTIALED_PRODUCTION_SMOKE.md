@@ -222,3 +222,23 @@ Required next step remains:
 - rerun logged-in browser QA if production match/prediction data changes materially before launch
 
 See `docs/P0_CLOSEOUT_REPORT.md` for the full closeout.
+
+## Launch Operations Readiness Follow-Up - 2026-07-05
+
+Branch: `ops/launch-operations-readiness`
+Runbook: `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+This pass reran admin/export production checks after the P1 access-control merge:
+
+- `ADMIN_PIN` was loaded only from ignored `.env.local` into the active command process and was cleared after use
+- admin login returned role `ADMIN`
+- authenticated admin `/api/state` returned role `ADMIN`
+- admin state included users, payments, payouts/refunds, audit logs, admin predictions, sports diagnostics, and storage status
+- admin state reported storage label `Supabase`
+- authenticated admin export backup returned HTTP 200 and parsed as JSON
+- export was inspected in memory only; no local export file was written
+- admin state and export secret-marker scans found no API key, Supabase key, service-role key, session secret, database URL, `ADMIN_PIN`, or old PIN marker
+
+Regular-user credentialed smoke was not rerun in this pass because no approved regular-user full-name plus phone credential pair was available under expected non-logging env names. No fake production user was created.
+
+Production data touched was limited to existing admin session/audit records from admin login/export/status checks. No predictions, payments, payouts/refunds, match results, fixture sync, result sync, or exchange-rate refresh were changed.

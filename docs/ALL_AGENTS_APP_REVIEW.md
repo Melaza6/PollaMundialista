@@ -284,3 +284,28 @@ Remaining risk:
 
 - Supabase RLS verification remains a separate defense-in-depth task.
 - Future endpoint additions should include explicit anonymous, regular-user, and admin coverage before launch use.
+
+## 15. Launch Operations Readiness Update - 2026-07-05
+
+Branch: `ops/launch-operations-readiness`
+Runbook: `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+Completed:
+
+- rechecked production readiness after the access-control regression branch was merged to `main`
+- confirmed anonymous `/api/state` remains public-safe
+- confirmed `/api/live-readiness` returned `ready:true`
+- confirmed anonymous export, sync status, and USD/COP refresh endpoints return HTTP 403
+- completed admin smoke using `ADMIN_PIN` loaded only from ignored `.env.local`
+- completed authenticated admin export backup smoke in memory with no export file written
+- confirmed admin state reports storage label `Supabase`
+- confirmed sports API readiness through read-only admin status: API-Football and football-data.org configured, active provider `football-data`, status `SYNCED`, World Cup 2026 sanity passed, no warnings
+- created the manual launch operations runbook for matchday, payment confirmation, payout/refund handling, final settlement, and export/backup timing
+
+Current launch recommendation:
+
+- ready with warnings for launch operations
+- keep exports private and out of Git
+- do not trigger fixture sync, result sync, or exchange-rate refresh during read-only smoke checks
+- rerun logged-in regular-user browser/mobile QA if production match or prediction data changes materially before launch
+- Supabase RLS verification remains a separate defense-in-depth task

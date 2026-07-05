@@ -302,3 +302,30 @@ Remaining warnings before unrestricted real-family launch:
 1. keep production `ADMIN_PIN` rotated and secret
 2. handle production exports only through secure admin workflows because they contain private pool data
 3. rerun logged-in browser QA if production match/prediction data changes materially before launch
+
+## Launch Operations Readiness Follow-Up - 2026-07-05
+
+Follow-up branch: `ops/launch-operations-readiness`
+Runbook: `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+The launch operations pass reconfirmed production readiness after the P1 access-control regression branch was merged.
+
+Completed in the follow-up:
+
+- production `/`, `/app.js`, `/styles.css`, `/api/state`, and `/api/live-readiness` returned HTTP 200
+- anonymous `/api/state` remained public-safe
+- `/api/live-readiness` returned `ready:true` with no failing keys
+- anonymous `/api/admin/export/backup` returned HTTP 403
+- anonymous `/api/sync/status` returned HTTP 403
+- anonymous `/api/exchange-rate/usd-cop` returned HTTP 403
+- admin smoke passed using `ADMIN_PIN` loaded only from ignored `.env.local`
+- authenticated admin export returned HTTP 200, parsed as JSON, and was inspected in memory only
+- admin state confirmed storage label `Supabase`
+- read-only sports readiness confirmed API-Football and football-data.org are configured, active provider `football-data`, status `SYNCED`, and World Cup 2026 sanity passed
+- manual matchday, payment, payout/refund, final settlement, and backup/export operations are documented in the runbook
+
+Deferred in this follow-up:
+
+- regular-user smoke was not rerun because no approved regular-user full-name plus phone credential pair was available under expected non-logging env names
+
+No production business data was mutated. Existing app behavior may have created admin session and audit records for admin login/export/status checks. No predictions, payments, payouts/refunds, match results, fixture sync, result sync, or exchange-rate refresh were changed.

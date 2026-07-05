@@ -142,3 +142,12 @@ Local warning remains: current Node is `v24.14.0`; project engines require Node 
 The logged-in regular-user browser/mobile QA gap is complete for the tested production state.
 
 Proceed as ready with warnings: keep credentials out of docs/logs, continue to avoid committing local env files or screenshots, and rerun this QA if fresh production data changes the next-match/prediction-form state before launch.
+
+## Launch Operations Readiness Follow-Up - 2026-07-05
+
+Branch: `ops/launch-operations-readiness`
+Runbook: `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+The launch operations pass did not rerun logged-in regular-user browser/mobile QA because no approved regular-user full-name plus phone credential pair was available under expected non-logging env names.
+
+The 2026-07-03 logged-in browser/mobile QA remains the latest regular-user browser evidence. Rerun this QA if production match or prediction data changes materially before launch.

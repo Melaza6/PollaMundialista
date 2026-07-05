@@ -185,3 +185,38 @@ Remaining deferred items:
 - Production `ADMIN_PIN` still needs rotation because a previous value was pasted into chat.
 
 See `docs/P0_CLOSEOUT_REPORT.md` for the final closeout details.
+
+## Launch Operations Readiness Follow-Up - 2026-07-05
+
+Branch: `ops/launch-operations-readiness`
+Runbook: `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+Production was rechecked after the access-control regression branch was merged to `main`:
+
+- `/`: HTTP 200
+- `/app.js`: HTTP 200, no secret markers found
+- `/styles.css`: HTTP 200, no secret markers found
+- `/api/state`: HTTP 200, valid JSON, anonymous public-safe state
+- `/api/live-readiness`: HTTP 200, `ready:true`, no failing keys
+- anonymous `/api/admin/export/backup`: HTTP 403
+- anonymous `/api/sync/status`: HTTP 403
+- anonymous `/api/exchange-rate/usd-cop`: HTTP 403
+
+Authenticated admin checks were completed with `ADMIN_PIN` loaded only from ignored `.env.local`:
+
+- admin login returned role `ADMIN`
+- admin state confirmed storage label `Supabase`
+- authenticated admin export backup returned HTTP 200 and parsed as JSON
+- export response was inspected in memory only and no export file was written
+- export and admin state secret-marker scans found no secret markers
+
+Read-only sports readiness passed:
+
+- API-Football configured: yes
+- football-data.org configured: yes
+- active provider: `football-data`
+- provider status: `SYNCED`
+- World Cup 2026 sanity check: passed
+- warnings: none
+
+Regular-user smoke was not rerun in this pass because no approved regular-user credential pair was available under expected non-logging env names. The prior logged-in browser/mobile QA remains documented in `docs/LOGGED_IN_BROWSER_QA.md`.

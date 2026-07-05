@@ -125,3 +125,20 @@ Proceed as ready with warnings: keep `ADMIN_PIN` rotated and secret, avoid commi
 The remaining logged-in regular-user browser/mobile QA gap was completed on 2026-07-03 in `docs/LOGGED_IN_BROWSER_QA.md`.
 
 That follow-up passed at 375x812, 768x1024, and 1280x900 with no screenshots or export files created. Regular-user admin endpoint checks returned HTTP 403, and regular-user `/api/state` remained scoped.
+
+## Launch Operations Readiness Follow-Up
+
+The 2026-07-05 launch operations pass on branch `ops/launch-operations-readiness` reconfirmed authenticated admin export readiness after the access-control regression merge.
+
+See `docs/LAUNCH_OPERATIONS_READINESS.md` for the operational runbook and current smoke details.
+
+Follow-up result:
+
+- anonymous export remained denied with HTTP 403
+- authenticated admin export returned HTTP 200
+- export parsed as JSON and was inspected in memory only
+- no export file was written, committed, uploaded, or left behind
+- export secret-marker scan found no API key, Supabase key, service-role key, session secret, database URL, `ADMIN_PIN`, or old PIN marker
+- admin state still reported storage label `Supabase`
+
+Production data touched was limited to existing admin session/audit records from admin login/export/status checks.

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { createServer as createNetServer } from "node:net";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -36,6 +37,52 @@ const users = [
   { id: "admin", role: "ADMIN", name: "Admin" },
 ];
 
+const fetchBlockedPorts = new Set([5060, 5061, 6000, 6665, 6666, 6667, 6668, 6669, 10080]);
+
+function inheritedChildEnv() {
+  const env = {};
+  for (const key of ["Path", "PATH", "SystemRoot", "TEMP", "TMP", "USERPROFILE"]) {
+    if (process.env[key]) env[key] = process.env[key];
+  }
+  return env;
+}
+
+function testServerEnv(port, overrides = {}) {
+  return {
+    ...inheritedChildEnv(),
+    PORT: String(port),
+    VERCEL: "",
+    NODE_ENV: "test",
+    DATA_STORAGE_DRIVER: "json",
+    ADMIN_PIN: "test-admin-pin-not-2026",
+    SESSION_SECRET: "test-session-secret-long-enough-for-production",
+    API_FOOTBALL_KEY: "test-api-football-key",
+    FOOTBALL_DATA_API_KEY: "test-football-data-key",
+    SUPABASE_ANON_KEY: "test-supabase-anon-key",
+    SUPABASE_SERVICE_ROLE_KEY: "test-supabase-service-role-key",
+    DATABASE_URL: "postgres://example.invalid/polla_test",
+    ...overrides,
+  };
+}
+
+async function availableFetchSafePort() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const probe = createNetServer();
+    const port = await new Promise((resolve, reject) => {
+      probe.once("error", reject);
+      probe.listen(0, "127.0.0.1", () => {
+        const address = probe.address();
+        resolve(typeof address === "object" && address ? address.port : 0);
+      });
+    });
+    await new Promise((resolve, reject) => {
+      probe.close((error) => (error ? reject(error) : resolve()));
+    });
+    if (port && !fetchBlockedPorts.has(port)) return port;
+  }
+  throw new Error("Unable to allocate a fetch-safe HTTP test port");
+}
+
 function safeProcessLog(lines) {
   return lines
     .join("")
@@ -45,6 +92,7 @@ function safeProcessLog(lines) {
 }
 
 async function waitForHealth(port, attempts = 30, child = null, logs = []) {
+  let lastHealthError = "";
   for (let index = 0; index < attempts; index += 1) {
     if (child?.exitCode !== null) {
       throw new Error(`Test server exited before health check. Exit code: ${child.exitCode}. Logs: ${safeProcessLog(logs) || "(none)"}`);
@@ -52,12 +100,16 @@ async function waitForHealth(port, attempts = 30, child = null, logs = []) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/health`);
       if (response.ok) return;
-    } catch {
+      lastHealthError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastHealthError = error?.message || String(error);
       // Server is still starting.
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`Timed out waiting for test server. Logs: ${safeProcessLog(logs) || "(none)"}`);
+  throw new Error(
+    `Timed out waiting for test server. Last health error: ${safeProcessLog([lastHealthError]) || "(none)"}. Logs: ${safeProcessLog(logs) || "(none)"}`,
+  );
 }
 
 function copyIsolatedServerFiles(dir) {
@@ -82,7 +134,7 @@ async function withIsolatedHttpServer(db, callback) {
   const dir = mkdtempSync(join(tmpdir(), "polla-http-"));
   const dbDir = join(dir, "data");
   const dbPath = join(dbDir, "db.json");
-  const port = 4700 + Math.floor(Math.random() * 500);
+  const port = await availableFetchSafePort();
   const childLogs = [];
 
   copyIsolatedServerFiles(dir);
@@ -91,25 +143,7 @@ async function withIsolatedHttpServer(db, callback) {
 
   const child = spawn(process.execPath, ["server.js"], {
     cwd: dir,
-    env: {
-      Path: process.env.Path,
-      PATH: process.env.PATH,
-      SystemRoot: process.env.SystemRoot,
-      TEMP: process.env.TEMP,
-      TMP: process.env.TMP,
-      USERPROFILE: process.env.USERPROFILE,
-      PORT: String(port),
-      VERCEL: "",
-      NODE_ENV: "test",
-      DATA_STORAGE_DRIVER: "json",
-      ADMIN_PIN: "test-admin-pin-not-2026",
-      SESSION_SECRET: "test-session-secret-long-enough-for-production",
-      API_FOOTBALL_KEY: "test-api-football-key",
-      FOOTBALL_DATA_API_KEY: "test-football-data-key",
-      SUPABASE_ANON_KEY: "test-supabase-anon-key",
-      SUPABASE_SERVICE_ROLE_KEY: "test-supabase-service-role-key",
-      DATABASE_URL: "postgres://example.invalid/polla_test",
-    },
+    env: testServerEnv(port),
     stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.on("data", (chunk) => childLogs.push(String(chunk)));
@@ -1070,21 +1104,16 @@ test("Missing Supabase env vars are reported by storage without crashing startup
 });
 
 test("/api/state returns JSON on storage error", async () => {
-  const port = 4300 + Math.floor(Math.random() * 500);
+  const port = await availableFetchSafePort();
   const childLogs = [];
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
-    env: {
-      ...process.env,
-      PORT: String(port),
-      VERCEL: "",
-      ADMIN_PIN: "test-admin-pin-not-2026",
-      SESSION_SECRET: "test-session-secret-long-enough-for-production",
+    env: testServerEnv(port, {
       DATA_STORAGE_DRIVER: "supabase",
       SUPABASE_URL: "",
       SUPABASE_ANON_KEY: "",
       SUPABASE_SERVICE_ROLE_KEY: "",
-    },
+    }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.on("data", (chunk) => childLogs.push(String(chunk)));

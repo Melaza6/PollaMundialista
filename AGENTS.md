@@ -1,5 +1,19 @@
 # AGENTS.md — Polla Mundialista 2026
 
+## Melaza Ecosystem Reporting
+
+Polla Mundialista is a Melaza-owned product/app branch in the Melaza Ecosystem. It stays separate from Melaza Network and `melaza-landing-page`, while reporting major security, deployment, launch, public showcase, and MN registration findings back to the root ecosystem docs.
+
+Before ecosystem-facing app changes, also respect the root `AGENTS.md`, `agents/app-work-gatekeeper-agent.md`, `agents/app-agent-communication-gatekeeper-agent.md`, `agents/client-app-branch-agent.md`, `agents/supabase-rls-agent.md`, and `skills/app-change-approval-skill.md`.
+
+Do not expose product users, phone numbers, predictions, payments, payouts, audit logs, exports, sports API data, admin data, Supabase service-role keys, `ADMIN_PIN`, `SESSION_SECRET`, or private environment values to MN, MLP, public showcase content, reports, logs, or screenshots.
+
+Learn/Grow/Bloom role:
+
+- Learn: collect prediction, payment-status, sports-sync, support, and launch-readiness facts inside the product app.
+- Grow: maintain product-specific rules, auth/session behavior, storage, QA, deployment, and app operations inside this branch.
+- Bloom: support a safe public product experience and possible future public showcase only after ecosystem approval.
+
 ## Shared agent handoff
 
 Before major work, read:
