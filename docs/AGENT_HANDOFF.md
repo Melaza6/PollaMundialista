@@ -1336,6 +1336,94 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 ### Recommended next agent
 - `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.
 
+## 2026-07-06 Supabase RLS verification
+
+### Summary
+- Branch: `qa/supabase-rls-verification`.
+- Completed the defense-in-depth Supabase RLS verification for the live `PollaMundialista` project.
+- Live Supabase metadata was captured on 2026-07-05; final local verification completed on 2026-07-06.
+- Confirmed the live project matched Polla Mundialista before using the Supabase plugin.
+- Used read-only metadata checks only; no production row contents were inspected and no writes, migrations, policy changes, inserts, updates, or deletes were performed.
+- Confirmed all required app tables exist and have RLS enabled.
+- Confirmed `pg_policies` has no policies on the app tables, so there are no broad public `using (true)` or `with check (true)` policies.
+- Confirmed count-only checks as `anon` and `authenticated` returned zero visible rows across required app tables.
+- Confirmed the current app still uses backend route authorization and service-role storage as the primary boundary, with RLS as defense-in-depth.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/database-supabase.md`
+- `.agents/supabase-rls-policies.md`
+- `.agents/security-auth-review.md`
+- `.agents/qa-test-engineer.md`
+- `.agents/code-review-refactor.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `docs/SUPABASE_RLS_VERIFICATION.md`
+- `docs/AGENT_HANDOFF.md`
+- `docs/ALL_AGENTS_APP_REVIEW.md`
+- `docs/P0_CLOSEOUT_REPORT.md`
+- `docs/LAUNCH_OPERATIONS_READINESS.md`
+
+### Tests added/updated
+- None. This branch is read-only Supabase metadata verification plus documentation.
+- Existing access-control tests remain the automated app-boundary coverage.
+
+### Commands run
+```powershell
+pwd
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+git checkout main
+git pull
+git checkout -b qa/supabase-rls-verification
+Supabase plugin: list projects
+Supabase plugin: list public tables
+Supabase plugin: query RLS metadata
+Supabase plugin: query pg_policies
+Supabase plugin: query anon/authenticated count-only visibility
+Supabase plugin: security advisors
+```
+
+Verification commands run:
+
+```powershell
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd build
+pnpm.cmd test
+$env:VERCEL = "1"; $env:NODE_ENV = "production"; pnpm.cmd test; Remove-Item Env:\VERCEL; Remove-Item Env:\NODE_ENV
+pnpm.cmd db:check
+```
+
+### Result
+- Live Supabase project checked: `PollaMundialista` (`pftzfdedqeajtmbnpows`).
+- Required tables present: `users`, `matches`, `predictions`, `payments`, `exchange_rates`, `audit_logs`, `prediction_corrections`, `payouts`, `app_settings`, `sync_logs`, `exports`.
+- RLS enabled on all required tables.
+- No policies exist on required tables.
+- No broad public policies found.
+- Supabase advisor reported `RLS Enabled No Policy` as INFO, which matches the current conservative backend-only service-role architecture.
+- Direct count-only visibility as `anon` and `authenticated` returned zero rows for all required app tables.
+- No service-role key exposure was found in browser code or docs placeholders.
+- `pnpm.cmd install --frozen-lockfile`: first run hit pnpm's no-TTY module purge prompt; rerun with `CI=true` passed.
+- `pnpm.cmd build`: passed, 57/57 tests inside the build flow.
+- `pnpm.cmd test`: sandbox run failed only with `spawn EPERM`; escalated rerun passed, 57/57.
+- `VERCEL=1 NODE_ENV=production pnpm.cmd test`: passed, 57/57, and `VERCEL`/`NODE_ENV` were cleared afterward.
+- `pnpm.cmd db:check`: first run hit pnpm's no-TTY dependency-status prompt; rerun with `CI=true` passed with `{"ok":true,"driver":"supabase","checkedTables":11}`.
+- Secret scan found only placeholder env var names and safety wording; no real secrets or credentials were found.
+- Local warning remains: current Node is `v24.14.0`; project engines require Node `22.x`.
+
+### Remaining risks
+- Backend route authorization remains the primary boundary because the app uses custom name-plus-phone sessions and a backend service-role storage adapter.
+- Broad direct table grants are present for `anon` and `authenticated`, but RLS/no-policies blocks access today; a future hardening branch may review grant revocation after compatibility review.
+- No pgTAP or repeatable SQL policy test suite exists yet.
+- Future Supabase Auth adoption would require explicit app-user mapping and new policies.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` if the owner asks to commit/push.
+- `.agents/database-supabase.md` for a future `db/relational-source-of-truth-plan` branch.
+
 ## 2026-07-05 Launch operations test-timeout triage
 
 ### Summary

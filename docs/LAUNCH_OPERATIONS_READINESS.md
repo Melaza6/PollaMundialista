@@ -303,3 +303,17 @@ Remaining warnings:
 - sports sync and exchange-rate refresh were not triggered during this pass because they can mutate production state
 - rerun logged-in regular-user browser/mobile QA if production match or prediction data changes materially before launch
 - local runner may still use a Node version different from the project engine `22.x`
+
+## Supabase RLS Verification Cross-Reference
+
+The 2026-07-06 `qa/supabase-rls-verification` follow-up completed the separate defense-in-depth RLS check.
+
+See `docs/SUPABASE_RLS_VERIFICATION.md` for details.
+
+Launch-operations impact:
+
+- required Supabase app tables are present
+- RLS is enabled on all required tables
+- no broad public policies were found
+- direct `anon` and `authenticated` count-only table visibility returned zero rows
+- backend routes and server-side session/admin checks remain the primary app authorization boundary

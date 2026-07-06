@@ -103,7 +103,7 @@ Admin routes generally call `requireAdmin()`, but `/api/state` currently returns
 
 ### Supabase RLS Policies Agent
 
-The migration enables RLS on all app tables and the browser does not directly write to Supabase. Because the app uses a backend service-role adapter and custom sessions, endpoint-level authorization remains the primary control and should be tested aggressively.
+The migration enables RLS on all app tables and the browser does not directly write to Supabase. The 2026-07-06 `qa/supabase-rls-verification` pass checked the live `PollaMundialista` Supabase project with read-only metadata: all required tables were present, RLS was enabled on each, no broad public policies existed, and count-only checks as `anon` and `authenticated` returned zero visible rows. Because the app uses a backend service-role adapter and custom sessions, endpoint-level authorization remains the primary control and should continue to be tested aggressively.
 
 ### Database Supabase Agent
 
@@ -152,7 +152,7 @@ Important code comments exist around production credential fallback and Vercel/s
 | Mobile Responsive Review | Real device QA | Run Playwright or browser QA at 375x812, 768x1024, and 1280x900 for login, prediction, payment comment, standings, admin payments, results, and tools. | Most users will use phones; source markers are not enough. | `qa/mobile-production-smoke` | Tests/docs |
 | Payments Pot Logic | Payout operations | Add an admin settlement checklist/status display that separates calculated, approved, paid, failed, and cancelled records for match winners, refunds, and tournament bonus. | Manual money operations need explicit tracking. | `ui/admin-settlement-checklist` | Code, tests |
 | World Cup Rules Scoring | Final tournament bonus | Make USD tournament bonus clearly provisional until tournament completion or admin finalization. | Prevents premature payout of the final bonus. | `logic/final-bonus-finalization` | Code, tests, copy |
-| Supabase RLS Policies | Policy verification | Add a lightweight RLS/policy verification checklist or script that confirms RLS is enabled on all tables and no broad public policies exist. | Service-role backend is primary, but RLS is defense-in-depth. | `security/supabase-rls-verification` | Tests/config/docs |
+| Supabase RLS Policies | Policy verification | Completed the live read-only RLS verification in `docs/SUPABASE_RLS_VERIFICATION.md`; future work can turn the metadata checklist into a repeatable script. | Service-role backend is primary, but RLS is defense-in-depth and should stay observable. | `qa/supabase-rls-verification` | Docs now; optional future script |
 | Sports API Sync | Provider monitoring | Surface provider warnings only to admin and test wrong season/competition warnings in production-like sync data. | Incorrect fixtures/results can corrupt locks and settlements. | `qa/sports-provider-readiness` | Tests/docs |
 
 ### P2 Useful improvements

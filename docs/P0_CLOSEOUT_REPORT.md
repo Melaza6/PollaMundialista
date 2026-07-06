@@ -329,3 +329,26 @@ Deferred in this follow-up:
 - regular-user smoke was not rerun because no approved regular-user full-name plus phone credential pair was available under expected non-logging env names
 
 No production business data was mutated. Existing app behavior may have created admin session and audit records for admin login/export/status checks. No predictions, payments, payouts/refunds, match results, fixture sync, result sync, or exchange-rate refresh were changed.
+
+## Supabase RLS Verification Follow-Up - 2026-07-06
+
+Follow-up branch: `qa/supabase-rls-verification`
+Report: `docs/SUPABASE_RLS_VERIFICATION.md`
+
+The defense-in-depth Supabase RLS pass checked the live `PollaMundialista` project with read-only metadata only. Live metadata was captured on 2026-07-05 and final local verification completed on 2026-07-06.
+
+Completed in the follow-up:
+
+- confirmed all required app tables exist in Supabase
+- confirmed RLS is enabled on all required app tables
+- confirmed no broad public RLS policies exist
+- confirmed no `auth.uid()` policies assume Supabase Auth maps to app users
+- confirmed count-only checks as `anon` and `authenticated` returned zero visible rows across required app tables
+- confirmed static service-role key handling remains backend-only
+- confirmed browser code does not directly read or write Supabase tables
+
+Remaining warning:
+
+- backend route authorization remains the primary data boundary because Polla Mundialista uses custom name-plus-phone sessions and the backend service-role storage adapter; RLS is defense-in-depth.
+
+No production data row contents were queried. No writes, migrations, policy changes, inserts, updates, or deletes were performed.
