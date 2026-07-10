@@ -262,3 +262,147 @@ At the end of a task, report:
 9. Recommended next Git action.
 
 Keep Git safe and boring.
+
+## Safe branch cleanup process
+
+Branch cleanup must protect unfinished work. Do not delete a branch only because it is old, behind `main`, or looks inactive.
+
+A branch is safe to delete only when all of these are true:
+
+1. It is not `main`.
+2. It is not the current branch.
+3. The working tree is clean.
+4. The branch is fully merged into `main`.
+5. The branch has no unique commits that are not already in `main`.
+6. The branch has no open pull request, if PR tooling is available.
+7. The branch is not explicitly marked as active, blocked, deferred, or in-progress in `docs/AGENT_HANDOFF.md`.
+
+Before deleting any branch, run a verification check.
+
+### Required cleanup commands
+
+Start with:
+
+```powershell
+git fetch --all --prune
+git checkout main
+git pull
+git status --short
+git branch --all --verbose
+git branch --merged main
+```
+
+Stop if the working tree is not clean.
+
+### Local branch safety check
+
+For each local branch that looks old or merged, check:
+
+```powershell
+git log --oneline main..branch-name
+git diff --stat main...branch-name
+```
+
+Interpretation:
+
+- If `git log --oneline main..branch-name` returns **no commits**, the branch has no commits ahead of `main`.
+- If `git diff --stat main...branch-name` returns **no meaningful diff**, the branch has no meaningful remaining file changes versus `main`.
+- If either command shows unique work, do **not** delete the branch.
+
+Also check:
+
+```powershell
+git branch --merged main
+```
+
+The branch must appear in this list before local deletion.
+
+### Remote branch safety check
+
+For a remote branch:
+
+```powershell
+git log --oneline main..origin/branch-name
+git diff --stat main...origin/branch-name
+```
+
+If either command shows unique commits or meaningful diff, do not delete.
+
+If GitHub CLI is available, also check for an open PR:
+
+```powershell
+gh pr list --head branch-name
+```
+
+If an open PR exists, do not delete the branch.
+
+If GitHub CLI is unavailable, report that PR status could not be checked.
+
+### Safe local deletion
+
+Only after confirming the branch is merged and has no unique work:
+
+```powershell
+git branch -d branch-name
+```
+
+Never use force delete unless explicitly approved:
+
+```powershell
+git branch -D branch-name
+```
+
+### Remote deletion requires explicit approval
+
+Never delete a remote branch automatically.
+
+If a remote branch appears safe to delete, report it like this:
+
+```txt
+Remote branch appears merged and safe to delete:
+origin/branch-name
+
+Evidence:
+- No unique commits versus main
+- No meaningful diff versus main
+- No open PR found / PR status unavailable
+- Local branch already deleted or absent
+
+Approval needed before running:
+git push origin --delete branch-name
+```
+
+Only delete remote branches after explicit user approval:
+
+```powershell
+git push origin --delete branch-name
+```
+
+### Branches that must be kept
+
+Never delete branches that:
+
+- are not merged into `main`
+- have unique commits
+- have a meaningful diff versus `main`
+- have an open PR
+- are listed as active, blocked, deferred, or in-progress in `docs/AGENT_HANDOFF.md`
+- contain feature work that has not been confirmed merged
+- are unclear or cannot be verified
+
+If uncertain, keep the branch and report it.
+
+### Cleanup report format
+
+Every branch cleanup report must include:
+
+1. Current branch.
+2. Working tree status.
+3. Branches inspected.
+4. Local branches deleted.
+5. Local branches kept and why.
+6. Remote branches that appear safe to delete.
+7. Remote branches kept and why.
+8. Whether PR status was checked.
+9. Any branches requiring user approval.
+10. Final `git status --short`.

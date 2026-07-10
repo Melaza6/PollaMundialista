@@ -234,6 +234,10 @@ If task is security:
 
 ---
 
+## Git/Branch Coordination
+
+Before deleting branches, use `.agents/git-branch-hygiene.md`. Branches must be verified as merged into `main` and must have no unique commits or meaningful diff. Old or behind branches are not automatically safe to delete. Remote branch deletion always requires explicit user approval.
+
 ## Branch workflow requirement
 
 For any code change, require a branch.
