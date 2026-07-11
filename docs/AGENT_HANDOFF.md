@@ -1336,6 +1336,58 @@ git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABA
 ### Recommended next agent
 - `.agents/git-branch-hygiene.md` for commit/push if the owner approves this documentation-only branch.
 
+## 2026-07-11 Remaining branch cleanup audit
+
+### Summary
+- Branch: `qa/remaining-branch-audit`.
+- Created `docs/BRANCH_CLEANUP_AUDIT.md`.
+- Audited remaining local and remote branches without deleting, merging, or modifying branches.
+- Confirmed five remote feature branches are merged into `main`, have no unique commits, have no meaningful diff, and have no open PRs from GitHub CLI checks.
+- Flagged local `master` as `needs_review` because it has unique work and no merge base with `main`.
+
+### Agents used
+- `.agents/agent-supervisor.md`
+- `.agents/git-branch-hygiene.md`
+- `.agents/code-comments-documentation.md`
+
+### Files changed
+- `docs/BRANCH_CLEANUP_AUDIT.md`
+- `docs/AGENT_HANDOFF.md`
+
+### Tests added/updated
+- None; documentation-only branch audit.
+
+### Commands run
+```powershell
+pwd
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+git checkout -b qa/remaining-branch-audit
+git fetch --all --prune
+git branch --all --verbose
+git branch --merged main
+git branch -r --merged main
+git log --oneline main..<branch>
+git diff --stat main...<branch>
+gh pr list --head <branch> --json number,state,title,headRefName --limit 10
+git diff --stat
+git diff | Select-String -Pattern "API_FOOTBALL_KEY|FOOTBALL_DATA_API_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY|SESSION_SECRET|ADMIN_PIN|DATABASE_URL|2026-Admin"
+```
+
+### Result
+- No branches were deleted.
+- No app code or package files changed.
+- Build/test were not run because this is docs-only and the verification instruction only required `git diff --stat`.
+- Secret scan found no real secrets.
+
+### Remaining risks
+- Local `master` should not be deleted without manual owner review because it is not merged into `main`, has unique commit `f85dfc3`, and has no merge base with `main`.
+- Remote branches listed in `docs/BRANCH_CLEANUP_AUDIT.md` are deletion candidates only after explicit approval.
+
+### Recommended next agent
+- `.agents/git-branch-hygiene.md` if the owner asks to commit this audit or delete approved remote candidates.
+
 ## 2026-07-06 Supabase RLS verification
 
 ### Summary
